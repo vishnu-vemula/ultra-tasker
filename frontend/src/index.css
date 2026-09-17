@@ -2,51 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-::-webkit-scrollbar {
-    width: 3px;
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
-  
-  ::-webkit-scrollbar-track {
-    background: #1c1f2b
+  .btn-primary {
+    @apply btn bg-indigo-600 text-white hover:bg-indigo-700;
   }
-  
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, orangered, orangered);
-    border-radius: 6px;
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
   }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #3498db, #2980b9);
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
   }
-  
-  /* Horizontal scrollbar styles */
-  ::-webkit-scrollbar:horizontal {
-    height: 3px; 
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 hover:text-slate-900;
   }
-  
-  ::-webkit-scrollbar-track:horizontal {
-    background: #1c1f2b;
+  .input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50;
   }
-  
-  ::-webkit-scrollbar-thumb:horizontal {
-    background: linear-gradient(to right, #3498db, #2980b9);
-    border-radius: 6px;
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
   }
-  
-  ::-webkit-scrollbar-thumb:horizontal:hover {
-    background: linear-gradient(to right, orangered, orangered);
+  .card {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
   }
-  
-  
-  
-  
-  
-  
-  /* Firefox (for both vertical and horizontal) */
-  /* * {
-    scrollbar-width: thin;
-    scrollbar-color: #3498db #1c1f2b;
-  } */
-  
+  .th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .td {
+    @apply px-4 py-3 text-sm text-slate-700;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .select {
+    @apply input pr-8;
+  }
+}

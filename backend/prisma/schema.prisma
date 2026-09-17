@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum ContactStatus {
+  LEAD
+  QUALIFIED
+  CUSTOMER
+  CHURNED
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id          String    @id
+  email       String    @unique
+  displayName String?
+  photoURL    String?
+  role        Role      @default(MEMBER)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  contacts    Contact[]
+  companies   Company[]
+  deals       Deal[]
+  tasks       Task[]
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  domain    String?   @unique
+  industry  String?
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contacts  Contact[]
+  deals     Deal[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([ownerId])
+}
+
+model Contact {
+  id        String        @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  position  String?
+  status    ContactStatus @default(LEAD)
+  notes     String?
+  companyId String?
+  company   Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  deals     Deal[]
+  tasks     Task[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([ownerId, status])
+  @@index([ownerId, name])
+}
+
+model Deal {
+  id                String      @id @default(cuid())
+  title             String
+  value             Float       @default(0)
+  currency          String      @default("USD")
+  stage             DealStage   @default(NEW)
+  position          Float       @default(0)
+  contactId         String?
+  contact           Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId         String?
+  company           Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  ownerId           String
+  owner             User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  notes             String?
+  tasks             Task[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([ownerId, stage, position])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority?
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  dealId      String?
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  ownerId     String
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId, status])
+  @@index([ownerId, dueDate])
+}

@@ -1,0 +1,49 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  type User as FirebaseUser,
+} from 'firebase/auth'
+import { auth } from '../../firebase'
+import { postSession } from './api/auth-api'
+import { AuthContext, type AuthContextValue } from './auth-context'
+import type { User } from '../../shared/types'
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
+  const [profile, setProfile] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user)
+      if (user) {
+        try {
+          const synced = await postSession()
+          setProfile(synced)
+        } catch {
+          setProfile(null)
+        }
+      } else {
+        setProfile(null)
+      }
+      setLoading(false)
+    })
+    return unsubscribe
+  }, [])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      firebaseUser,
+      profile,
+      role: profile?.role ?? null,
+      loading,
+      signOut: async () => {
+        await firebaseSignOut(auth)
+      },
+    }),
+    [firebaseUser, profile, loading],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
