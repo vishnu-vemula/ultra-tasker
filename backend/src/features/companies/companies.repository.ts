@@ -3,6 +3,13 @@ import type { PrismaService } from '../../database/prisma';
 
 export type { Company };
 
+const detailInclude = {
+  contacts: { include: { company: true, tags: true } },
+  deals: { include: { contact: true, company: true, tags: true } }
+} as const;
+
+export type CompanyDetail = Prisma.CompanyGetPayload<{ include: typeof detailInclude }>;
+
 export interface ListCompaniesInput {
   ownerId: string;
   search?: string;
@@ -14,6 +21,12 @@ export interface CreateCompanyInput {
   name: string;
   domain?: string | null;
   industry?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  country?: string | null;
+  employeeCount?: number | null;
+  annualRevenue?: number | null;
+  notes?: string | null;
 }
 
 export type UpdateCompanyInput = Partial<CreateCompanyInput>;
@@ -21,6 +34,7 @@ export type UpdateCompanyInput = Partial<CreateCompanyInput>;
 export interface ICompaniesRepository {
   list(input: ListCompaniesInput): Promise<{ items: Company[]; total: number }>;
   findByIdAndOwner(id: string, ownerId: string): Promise<{ id: string; ownerId: string } | null>;
+  findDetailByIdAndOwner(id: string, ownerId: string): Promise<CompanyDetail | null>;
   companyOwnedByOwner(id: string, ownerId: string): Promise<boolean>;
   create(ownerId: string, input: CreateCompanyInput): Promise<Company>;
   update(id: string, ownerId: string, input: UpdateCompanyInput): Promise<Company>;
@@ -60,6 +74,10 @@ export class CompaniesRepository implements ICompaniesRepository {
     return this.prisma.company.findFirst({ where: { id, ownerId }, select: { id: true, ownerId: true } });
   }
 
+  findDetailByIdAndOwner(id: string, ownerId: string) {
+    return this.prisma.company.findFirst({ where: { id, ownerId }, include: detailInclude });
+  }
+
   async companyOwnedByOwner(id: string, ownerId: string): Promise<boolean> {
     const company = await this.findByIdAndOwner(id, ownerId);
     return company !== null;
@@ -71,7 +89,13 @@ export class CompaniesRepository implements ICompaniesRepository {
         ownerId,
         name: input.name,
         domain: input.domain ?? null,
-        industry: input.industry ?? null
+        industry: input.industry ?? null,
+        phone: input.phone ?? null,
+        city: input.city ?? null,
+        country: input.country ?? null,
+        employeeCount: input.employeeCount ?? null,
+        annualRevenue: input.annualRevenue ?? null,
+        notes: input.notes ?? null
       }
     });
   }
@@ -82,7 +106,13 @@ export class CompaniesRepository implements ICompaniesRepository {
       data: {
         ...(input.name !== undefined && { name: input.name }),
         ...(input.domain !== undefined && { domain: input.domain }),
-        ...(input.industry !== undefined && { industry: input.industry })
+        ...(input.industry !== undefined && { industry: input.industry }),
+        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(input.city !== undefined && { city: input.city }),
+        ...(input.country !== undefined && { country: input.country }),
+        ...(input.employeeCount !== undefined && { employeeCount: input.employeeCount }),
+        ...(input.annualRevenue !== undefined && { annualRevenue: input.annualRevenue }),
+        ...(input.notes !== undefined && { notes: input.notes })
       }
     });
   }
@@ -91,5 +121,3 @@ export class CompaniesRepository implements ICompaniesRepository {
     await this.prisma.company.delete({ where: { id_ownerId: { id, ownerId } } });
   }
 }
-
-

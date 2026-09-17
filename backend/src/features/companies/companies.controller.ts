@@ -18,7 +18,7 @@ export class CompaniesController {
     const user = requireUser(req);
     const { id } = req.params;
     if (!id) throw AppError.notFound('Company');
-    res.json({ data: await this.companies.get(user.uid, id) });
+    res.json({ data: await this.companies.getDetail(user.uid, id) });
   });
 
   create = asyncHandler(async (req, res: Response) => {

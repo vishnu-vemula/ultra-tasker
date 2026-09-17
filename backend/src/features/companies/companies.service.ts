@@ -1,9 +1,13 @@
 import { AppError } from '../../common/utils/app-error';
-import type { Company, ICompaniesRepository } from './companies.repository';
+import type { AuditLogger } from '../../common/utils/audit-logger';
+import type { Company, CompanyDetail, ICompaniesRepository } from './companies.repository';
 import type { CreateCompanyInput, ListCompaniesQuery, UpdateCompanyInput } from './companies.schemas';
 
 export class CompaniesService {
-  constructor(private readonly repo: ICompaniesRepository) {}
+  constructor(
+    private readonly repo: ICompaniesRepository,
+    private readonly audit: AuditLogger
+  ) {}
 
   list(ownerId: string, query: ListCompaniesQuery): Promise<{ items: Company[]; total: number }> {
     return this.repo.list({ ownerId, search: query.search, page: query.page, pageSize: query.pageSize });
@@ -15,17 +19,29 @@ export class CompaniesService {
     return company;
   }
 
-  create(ownerId: string, input: CreateCompanyInput): Promise<Company> {
-    return this.repo.create(ownerId, input);
+  async getDetail(ownerId: string, id: string): Promise<CompanyDetail> {
+    const company = await this.repo.findDetailByIdAndOwner(id, ownerId);
+    if (!company) throw AppError.notFound('Company');
+    return company;
+  }
+
+  async create(ownerId: string, input: CreateCompanyInput): Promise<Company> {
+    const company = await this.repo.create(ownerId, input);
+    await this.audit.log(ownerId, 'CREATE', 'COMPANY', company.id, `Created company "${company.name}"`);
+    return company;
   }
 
   async update(ownerId: string, id: string, input: UpdateCompanyInput): Promise<Company> {
     await this.get(ownerId, id);
-    return this.repo.update(id, ownerId, input);
+    const company = await this.repo.update(id, ownerId, input);
+    await this.audit.log(ownerId, 'UPDATE', 'COMPANY', id, `Updated company "${company.name}"`);
+    return company;
   }
 
   async delete(ownerId: string, id: string): Promise<void> {
-    await this.get(ownerId, id);
+    const company = await this.repo.findDetailByIdAndOwner(id, ownerId);
+    if (!company) throw AppError.notFound('Company');
     await this.repo.delete(id, ownerId);
+    await this.audit.log(ownerId, 'DELETE', 'COMPANY', id, `Deleted company "${company.name}"`);
   }
 }
