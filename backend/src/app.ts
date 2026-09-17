@@ -51,6 +51,12 @@ export function createApp(): express.Express {
   app.use('/api/v1/companies', container.routers.companies);
   app.use('/api/v1/deals', container.routers.deals);
   app.use('/api/v1/tasks', container.routers.tasks);
+  app.use('/api/v1/tags', container.routers.tags);
+  app.use('/api/v1/products', container.routers.products);
+  app.use('/api/v1/activities', container.routers.activities);
+  app.use('/api/v1/notifications', container.routers.notifications);
+  app.use('/api/v1/audit', container.routers.audit);
+  app.use('/api/v1/search', container.routers.search);
   app.use('/api/v1/dashboard', container.routers.dashboard);
 
   app.use((_req, res) => {
