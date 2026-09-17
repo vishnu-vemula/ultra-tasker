@@ -1,9 +1,18 @@
 import type { DealStage, Prisma } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
 
-const dealInclude = { contact: true, company: true } as const;
+const dealInclude = { contact: true, company: true, tags: true } as const;
+const detailInclude = {
+  contact: true,
+  company: true,
+  tags: true,
+  items: { include: { product: true } },
+  activities: { orderBy: { occurredAt: 'desc' } as const, take: 50 }
+} as const;
 
 export type DealWithRelations = Prisma.DealGetPayload<{ include: typeof dealInclude }>;
+export type DealDetail = Prisma.DealGetPayload<{ include: typeof detailInclude }>;
+export type DealItemWithProduct = Prisma.DealItemGetPayload<{ include: { product: true } }>;
 
 export interface ListDealsInput {
   ownerId: string;
@@ -21,6 +30,10 @@ export interface CreateDealInput {
   value: number;
   stage?: Prisma.DealCreateInput['stage'];
   currency?: string;
+  probability?: number;
+  source?: Prisma.DealCreateInput['source'];
+  nextStep?: string | null;
+  lostReason?: string | null;
   contactId?: string | null;
   companyId?: string | null;
   expectedCloseDate?: Date | null;
@@ -30,21 +43,38 @@ export interface CreateDealInput {
 
 export type UpdateDealInput = Partial<CreateDealInput>;
 
+export interface CreateDealItemData {
+  productId?: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export type UpdateDealItemData = Partial<CreateDealItemData>;
+
 export interface ReorderUpdateInput {
   id: string;
-  stage: Prisma.DealCreateInput['stage'];
+  stage: DealStage;
   position: number;
 }
 
 export interface IDealsRepository {
   list(input: ListDealsInput): Promise<{ items: DealWithRelations[]; total: number }>;
   findByIdAndOwner(id: string, ownerId: string): Promise<DealWithRelations | null>;
+  findDetailByIdAndOwner(id: string, ownerId: string): Promise<DealDetail | null>;
   maxPositionInStage(ownerId: string, stage: string): Promise<number>;
   relationOwnedByOwner(kind: 'contact' | 'company', id: string, ownerId: string): Promise<boolean>;
   create(ownerId: string, input: CreateDealInput): Promise<DealWithRelations>;
   update(id: string, ownerId: string, input: UpdateDealInput): Promise<DealWithRelations>;
   delete(id: string, ownerId: string): Promise<void>;
   reorder(ownerId: string, updates: ReorderUpdateInput[]): Promise<DealWithRelations[]>;
+  setTags(id: string, ownerId: string, tagIds: string[]): Promise<DealWithRelations>;
+  addItem(ownerId: string, dealId: string, input: CreateDealItemData): Promise<DealItemWithProduct>;
+  findItemByIdAndOwner(id: string, ownerId: string): Promise<DealItemWithProduct | null>;
+  updateItem(id: string, ownerId: string, input: UpdateDealItemData): Promise<DealItemWithProduct>;
+  deleteItem(id: string, ownerId: string): Promise<void>;
+  sumItemTotals(dealId: string): Promise<number>;
+  setValue(id: string, ownerId: string, value: number): Promise<void>;
 }
 
 export class DealsRepository implements IDealsRepository {
@@ -86,6 +116,10 @@ export class DealsRepository implements IDealsRepository {
     return this.prisma.deal.findFirst({ where: { id, ownerId }, include: dealInclude });
   }
 
+  findDetailByIdAndOwner(id: string, ownerId: string): Promise<DealDetail | null> {
+    return this.prisma.deal.findFirst({ where: { id, ownerId }, include: detailInclude });
+  }
+
   async maxPositionInStage(ownerId: string, stage: string): Promise<number> {
     const agg = await this.prisma.deal.aggregate({
       _max: { position: true },
@@ -96,13 +130,9 @@ export class DealsRepository implements IDealsRepository {
 
   relationOwnedByOwner(kind: 'contact' | 'company', id: string, ownerId: string): Promise<boolean> {
     if (kind === 'contact') {
-      return this.prisma.contact
-        .findFirst({ where: { id, ownerId }, select: { id: true } })
-        .then((row) => row !== null);
+      return this.prisma.contact.findFirst({ where: { id, ownerId }, select: { id: true } }).then((row) => row !== null);
     }
-    return this.prisma.company
-      .findFirst({ where: { id, ownerId }, select: { id: true } })
-      .then((row) => row !== null);
+    return this.prisma.company.findFirst({ where: { id, ownerId }, select: { id: true } }).then((row) => row !== null);
   }
 
   create(ownerId: string, input: CreateDealInput): Promise<DealWithRelations> {
@@ -114,6 +144,10 @@ export class DealsRepository implements IDealsRepository {
         currency: input.currency ?? 'USD',
         stage: input.stage ?? 'NEW',
         position: input.position ?? 1,
+        probability: input.probability ?? 10,
+        source: input.source ?? null,
+        nextStep: input.nextStep ?? null,
+        lostReason: input.lostReason ?? null,
         contactId: input.contactId ?? null,
         companyId: input.companyId ?? null,
         expectedCloseDate: input.expectedCloseDate ?? null,
@@ -125,6 +159,8 @@ export class DealsRepository implements IDealsRepository {
   }
 
   update(id: string, ownerId: string, input: UpdateDealInput): Promise<DealWithRelations> {
+    const isOpenStage =
+      input.stage === 'NEW' || input.stage === 'QUALIFIED' || input.stage === 'PROPOSAL' || input.stage === 'NEGOTIATION';
     return this.prisma.deal.update({
       where: { id_ownerId: { id, ownerId } },
       data: {
@@ -132,14 +168,16 @@ export class DealsRepository implements IDealsRepository {
         ...(input.value !== undefined && { value: input.value }),
         ...(input.currency !== undefined && { currency: input.currency }),
         ...(input.stage !== undefined && { stage: input.stage }),
+        ...(input.probability !== undefined && { probability: input.probability }),
+        ...(input.source !== undefined && { source: input.source }),
+        ...(input.nextStep !== undefined && { nextStep: input.nextStep }),
+        ...(input.lostReason !== undefined && { lostReason: input.lostReason }),
         ...(input.contactId !== undefined && { contactId: input.contactId }),
         ...(input.companyId !== undefined && { companyId: input.companyId }),
         ...(input.expectedCloseDate !== undefined && { expectedCloseDate: input.expectedCloseDate }),
         ...(input.notes !== undefined && { notes: input.notes }),
         ...(input.stage === 'WON' || input.stage === 'LOST' ? { closedAt: new Date() } : {}),
-        ...(input.stage === 'NEW' || input.stage === 'QUALIFIED' || input.stage === 'PROPOSAL' || input.stage === 'NEGOTIATION'
-          ? { closedAt: null }
-          : {})
+        ...(input.stage !== undefined && isOpenStage ? { closedAt: null } : {})
       },
       include: dealInclude
     });
@@ -162,5 +200,57 @@ export class DealsRepository implements IDealsRepository {
       where: { ownerId, id: { in: updates.map((update) => update.id) } },
       include: dealInclude
     });
+  }
+
+  setTags(id: string, ownerId: string, tagIds: string[]): Promise<DealWithRelations> {
+    return this.prisma.deal.update({
+      where: { id_ownerId: { id, ownerId } },
+      data: { tags: { set: tagIds.map((tagId) => ({ id: tagId })) } },
+      include: dealInclude
+    });
+  }
+
+  addItem(ownerId: string, dealId: string, input: CreateDealItemData): Promise<DealItemWithProduct> {
+    return this.prisma.dealItem.create({
+      data: {
+        ownerId,
+        dealId,
+        productId: input.productId ?? null,
+        description: input.description,
+        quantity: input.quantity,
+        unitPrice: input.unitPrice
+      },
+      include: { product: true }
+    });
+  }
+
+  findItemByIdAndOwner(id: string, ownerId: string): Promise<DealItemWithProduct | null> {
+    return this.prisma.dealItem.findFirst({ where: { id, ownerId }, include: { product: true } });
+  }
+
+  updateItem(id: string, ownerId: string, input: UpdateDealItemData): Promise<DealItemWithProduct> {
+    return this.prisma.dealItem.update({
+      where: { id_ownerId: { id, ownerId } },
+      data: {
+        ...(input.productId !== undefined && { productId: input.productId }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.quantity !== undefined && { quantity: input.quantity }),
+        ...(input.unitPrice !== undefined && { unitPrice: input.unitPrice })
+      },
+      include: { product: true }
+    });
+  }
+
+  async deleteItem(id: string, ownerId: string): Promise<void> {
+    await this.prisma.dealItem.delete({ where: { id_ownerId: { id, ownerId } } });
+  }
+
+  async sumItemTotals(dealId: string): Promise<number> {
+    const items = await this.prisma.dealItem.findMany({ where: { dealId }, select: { quantity: true, unitPrice: true } });
+    return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  }
+
+  async setValue(id: string, ownerId: string, value: number): Promise<void> {
+    await this.prisma.deal.update({ where: { id_ownerId: { id, ownerId } }, data: { value } });
   }
 }
