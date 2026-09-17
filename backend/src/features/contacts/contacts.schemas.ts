@@ -14,6 +14,10 @@ const contactBodySchema = z.object({
   phone: z.string().trim().max(40).nullish(),
   position: z.string().trim().max(80).nullish(),
   status: z.enum(['LEAD', 'QUALIFIED', 'CUSTOMER', 'CHURNED']).optional(),
+  website: z.string().trim().max(200).nullish(),
+  city: z.string().trim().max(80).nullish(),
+  country: z.string().trim().max(80).nullish(),
+  source: z.enum(['REFERRAL', 'WEBSITE', 'CAMPAIGN', 'COLD_OUTREACH', 'EVENT', 'OTHER']).nullish(),
   companyId: z.string().min(1).nullish(),
   notes: z.string().trim().max(2000).nullish()
 });
@@ -21,6 +25,11 @@ const contactBodySchema = z.object({
 export const createContactSchema = contactBodySchema;
 export const updateContactSchema = contactBodySchema.partial();
 
+export const setContactTagsSchema = z.object({
+  tagIds: z.array(z.string().min(1)).max(50).default([])
+});
+
 export type ListContactsQuery = z.infer<typeof listContactsQuerySchema>;
 export type CreateContactInput = z.infer<typeof createContactSchema>;
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
+export type SetContactTagsInput = z.infer<typeof setContactTagsSchema>;

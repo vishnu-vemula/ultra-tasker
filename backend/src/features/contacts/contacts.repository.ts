@@ -1,5 +1,17 @@
-import type { ContactStatus, Prisma } from '@prisma/client';
+import type { ContactSource, ContactStatus, Prisma } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
+
+const listInclude = { company: true, tags: true } as const;
+const detailInclude = {
+  company: true,
+  tags: true,
+  deals: { include: { contact: true, company: true, tags: true } },
+  tasks: true,
+  activities: { orderBy: { occurredAt: 'desc' } as const, take: 50 }
+} as const;
+
+export type ContactWithCompany = Prisma.ContactGetPayload<{ include: { company: true; tags: true } }>;
+export type ContactDetail = Prisma.ContactGetPayload<{ include: typeof detailInclude }>;
 
 export interface ContactWhereInput {
   ownerId: string;
@@ -19,6 +31,10 @@ export interface CreateContactInput {
   phone?: string | null;
   position?: string | null;
   status?: Prisma.ContactCreateInput['status'];
+  website?: string | null;
+  city?: string | null;
+  country?: string | null;
+  source?: ContactSource | null;
   companyId?: string | null;
   notes?: string | null;
 }
@@ -26,10 +42,13 @@ export interface CreateContactInput {
 export type UpdateContactInput = Partial<CreateContactInput>;
 
 export interface IContactsRepository {
-  list(input: ListContactsInput): Promise<{ items: Prisma.ContactGetPayload<{ include: { company: true } }>[]; total: number }>;
-  findByIdAndOwner(id: string, ownerId: string): Promise<Prisma.ContactGetPayload<{ include: { company: true } }> | null>;
-  create(ownerId: string, input: CreateContactInput): Promise<Prisma.ContactGetPayload<{ include: { company: true } }>>;
-  update(id: string, ownerId: string, input: UpdateContactInput): Promise<Prisma.ContactGetPayload<{ include: { company: true } }>>;
+  list(input: ListContactsInput): Promise<{ items: ContactWithCompany[]; total: number }>;
+  listAll(ownerId: string): Promise<ContactWithCompany[]>;
+  findByIdAndOwner(id: string, ownerId: string): Promise<ContactWithCompany | null>;
+  findDetailByIdAndOwner(id: string, ownerId: string): Promise<ContactDetail | null>;
+  create(ownerId: string, input: CreateContactInput): Promise<ContactWithCompany>;
+  update(id: string, ownerId: string, input: UpdateContactInput): Promise<ContactWithCompany>;
+  setTags(id: string, ownerId: string, tagIds: string[]): Promise<ContactWithCompany>;
   delete(id: string, ownerId: string): Promise<void>;
 }
 
@@ -51,12 +70,12 @@ export class ContactsRepository implements IContactsRepository {
     return where;
   }
 
-  async list(input: ListContactsInput): Promise<Awaited<ReturnType<IContactsRepository['list']>>> {
+  async list(input: ListContactsInput): Promise<{ items: ContactWithCompany[]; total: number }> {
     const where = this.buildWhere(input);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.contact.findMany({
         where,
-        include: { company: true },
+        include: listInclude,
         orderBy: [{ name: 'asc' }],
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize
@@ -66,8 +85,16 @@ export class ContactsRepository implements IContactsRepository {
     return { items, total };
   }
 
+  listAll(ownerId: string): Promise<ContactWithCompany[]> {
+    return this.prisma.contact.findMany({ where: { ownerId }, include: listInclude, orderBy: { name: 'asc' } });
+  }
+
   findByIdAndOwner(id: string, ownerId: string) {
-    return this.prisma.contact.findFirst({ where: { id, ownerId }, include: { company: true } });
+    return this.prisma.contact.findFirst({ where: { id, ownerId }, include: listInclude });
+  }
+
+  findDetailByIdAndOwner(id: string, ownerId: string) {
+    return this.prisma.contact.findFirst({ where: { id, ownerId }, include: detailInclude });
   }
 
   create(ownerId: string, input: CreateContactInput) {
@@ -79,10 +106,14 @@ export class ContactsRepository implements IContactsRepository {
         phone: input.phone ?? null,
         position: input.position ?? null,
         status: input.status ?? 'LEAD',
+        website: input.website ?? null,
+        city: input.city ?? null,
+        country: input.country ?? null,
+        source: input.source ?? null,
         companyId: input.companyId ?? null,
         notes: input.notes ?? null
       },
-      include: { company: true }
+      include: listInclude
     });
   }
 
@@ -95,10 +126,22 @@ export class ContactsRepository implements IContactsRepository {
         ...(input.phone !== undefined && { phone: input.phone }),
         ...(input.position !== undefined && { position: input.position }),
         ...(input.status !== undefined && { status: input.status }),
+        ...(input.website !== undefined && { website: input.website }),
+        ...(input.city !== undefined && { city: input.city }),
+        ...(input.country !== undefined && { country: input.country }),
+        ...(input.source !== undefined && { source: input.source }),
         ...(input.companyId !== undefined && { companyId: input.companyId }),
         ...(input.notes !== undefined && { notes: input.notes })
       },
-      include: { company: true }
+      include: listInclude
+    });
+  }
+
+  setTags(id: string, ownerId: string, tagIds: string[]) {
+    return this.prisma.contact.update({
+      where: { id_ownerId: { id, ownerId } },
+      data: { tags: { set: tagIds.map((tagId) => ({ id: tagId })) } },
+      include: listInclude
     });
   }
 
@@ -106,5 +149,3 @@ export class ContactsRepository implements IContactsRepository {
     await this.prisma.contact.delete({ where: { id_ownerId: { id, ownerId } } });
   }
 }
-
-export type ContactWithCompany = Prisma.ContactGetPayload<{ include: { company: true } }>;
