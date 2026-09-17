@@ -2,6 +2,7 @@ import type { Role, User } from '@prisma/client';
 import type { AuthUser } from '../../types/express';
 import { AppError } from '../../common/utils/app-error';
 import { firebaseAuth } from '../../database/firebase';
+import { bootstrapAdminEmails } from '../../config/env';
 import type { IUsersRepository, ListUsersInput, UpsertFromFirebaseInput } from './users.repository';
 
 const USER_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -28,7 +29,8 @@ export class UsersService {
       id: decoded.uid,
       email: decoded.email.toLowerCase(),
       displayName: decoded.name ?? null,
-      photoURL: decoded.picture ?? null
+      photoURL: decoded.picture ?? null,
+      forceAdmin: bootstrapAdminEmails.includes(decoded.email.toLowerCase())
     };
     const user = await this.repo.upsertFromFirebase(input);
     this.cache.set(decoded.uid, { user, syncedAt: Date.now() });
