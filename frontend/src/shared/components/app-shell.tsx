@@ -1,22 +1,27 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Building2, KanbanSquare, LayoutDashboard, LogOut, Users, UsersRound, Zap } from 'lucide-react'
+import { Building2, KanbanSquare, LayoutDashboard, LogOut, Package, Tags, Users, UsersRound, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../features/auth/use-auth'
+import { GlobalSearch } from '../../features/search/components/global-search'
+import { NotificationsBell } from '../../features/notifications/components/notifications-bell'
 
 interface NavItem {
   to: string
   label: string
   icon: typeof LayoutDashboard
   adminOnly?: boolean
+  section?: 'main' | 'settings'
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/contacts', label: 'Contacts', icon: UsersRound },
-  { to: '/companies', label: 'Companies', icon: Building2 },
-  { to: '/deals', label: 'Deals', icon: KanbanSquare },
-  { to: '/tasks', label: 'Tasks', icon: Zap },
-  { to: '/settings/users', label: 'Users', icon: Users, adminOnly: true },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, section: 'main' },
+  { to: '/contacts', label: 'Contacts', icon: UsersRound, section: 'main' },
+  { to: '/companies', label: 'Companies', icon: Building2, section: 'main' },
+  { to: '/deals', label: 'Deals', icon: KanbanSquare, section: 'main' },
+  { to: '/tasks', label: 'Tasks', icon: Zap, section: 'main' },
+  { to: '/settings/users', label: 'Users', icon: Users, adminOnly: true, section: 'settings' },
+  { to: '/settings/tags', label: 'Tags', icon: Tags, section: 'settings' },
+  { to: '/settings/products', label: 'Products', icon: Package, section: 'settings' },
 ]
 
 function initials(name: string | null, email: string): string {
@@ -39,6 +44,25 @@ export function AppShell() {
   }
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || profile?.role === 'ADMIN')
+  const mainItems = visibleItems.filter((item) => item.section !== 'settings')
+  const settingItems = visibleItems.filter((item) => item.section === 'settings')
+
+  const renderLink = ({ to, label, icon: Icon }: NavItem) => (
+    <NavLink
+      key={to}
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        clsx(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+        )
+      }
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </NavLink>
+  )
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -49,23 +73,14 @@ export function AppShell() {
           </span>
           <span className="text-lg font-semibold text-slate-900">Ultra Tasker</span>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-2">
-          {visibleItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-                )
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+          {mainItems.map(renderLink)}
+          {settingItems.length > 0 ? (
+            <div className="pt-4">
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Settings</p>
+              <div className="space-y-1">{settingItems.map(renderLink)}</div>
+            </div>
+          ) : null}
         </nav>
         <div className="border-t border-slate-200 p-4">
           <div className="mb-3 flex items-center gap-3">
@@ -89,9 +104,17 @@ export function AppShell() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-x-auto">
-        <div className="mx-auto max-w-7xl p-8">
-          <Outlet />
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-8 py-3">
+          <GlobalSearch />
+          <div className="ml-auto">
+            <NotificationsBell />
+          </div>
+        </header>
+        <div className="flex-1 overflow-x-auto">
+          <div className="mx-auto max-w-7xl p-8">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>
