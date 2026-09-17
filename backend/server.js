@@ -26,7 +26,7 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/tasks", taskRoutes);
 
 app.get("/", (req, res) => {
-  res.json({ message: "Hello, Welocome To Vooshfoods" });
+  res.json({ message: "Task Manager API is running" });
 });
 
 app.listen(PORT, async () => {

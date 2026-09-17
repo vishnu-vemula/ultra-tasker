@@ -1,148 +1,160 @@
-Got it. Here’s your cleaned-up README version with --no stars, no emojis, no fancy badges-- – just plain professional markdown:
-MERN Task Manager App
+# TaskForge
 
-A Task Management Application built using the MERN (MongoDB, Express, React, Node.js) stack.
-The app allows users to create, manage, and organize tasks with features like secure authentication, drag-and-drop task arrangement, and a responsive UI.
+A full-stack task management app — organize work across **To Do / In Progress / Done** Kanban columns with drag-and-drop, secure JWT cookie auth, and Google OAuth.
 
-Features
+> Formerly *Task-Manager / ultra-tasker*. Now on a guided migration to a TypeScript, feature-based architecture (see [Architecture](#architecture)).
 
-- User Authentication: Secure login, registration, and logout with JWT (HttpOnly cookies) and Google OAuth
-- Task Management: Create, search, update, and delete tasks
-- Drag-and-Drop: Organize tasks between "To Do", "In Progress", and "Done"
-- Protected Routes: Authentication-based routing
-- Optimistic Updates: Faster UI updates with React Query caching
-- Responsive UI: Built with React Beautiful DnD and custom UI components
+**Live demo:** https://taskmanger-4sy5.onrender.com (Render free tier — cold starts are slow, give it ~30s)
 
-Tech Stack
+## Screenshots
 
- Frontend
+| | |
+|---|---|
+| ![Login](images/login.png) | ![Signup](images/signup.png) |
+| ![Task Board](images/home.png) | ![Task Details](images/taskdetails.png) |
+| ![Edit Task](images/taskedit.png) | |
 
-- React (v18.3.1)
-- Redux Toolkit (state management)
-- React Router (routing)
-- React Query (server caching)
-- React Hook Form + Zod (validation)
-- React Beautiful DnD (drag-and-drop)
-- Axios (API calls)
-- Flowbite-React (UI components)
-- React Toastify (notifications)
+## Features
 
-Backend
+- **Auth** — register / login / logout with JWT in HttpOnly cookies + Google OAuth
+- **Task CRUD** — create, search, update, delete; due dates, priorities, assignment
+- **Kanban board** — drag-and-drop between To Do / In Progress / Done with persisted order
+- **Optimistic updates** — React Query caching with rollback for instant UI
+- **Protected routes** — authentication-based routing
+- **Responsive UI** — Tailwind CSS
 
-- Node.js (v18.x)
-- Express.js (v4.19.2)
-- MongoDB + Mongoose
-- JWT (authentication)
-- Bcrypt.js (password hashing)
-- Cookie-Parser (JWT cookies)
+## Architecture
 
-Live Demo
+TaskForge is **mid-migration**: the running app is the legacy MERN codebase; the target is a feature-based, ORM-backed, dependency-injected TypeScript stack. Full blueprint and laws in [`ARCHITECTURE.md`](ARCHITECTURE.md); agent workflows in [`AGENTS.md`](AGENTS.md) and [`SKILLS.md`](SKILLS.md).
 
-[View the deployed app](https://taskmanger-4sy5.onrender.com)
+| Layer | Now | Target |
+|-------|-----|--------|
+| Backend | Express (JS) + Mongoose | NestJS + TypeScript, DI, class-validator |
+| Data | Mongoose calls in controllers | Prisma ORM behind repositories |
+| Frontend | React + Vite SPA (JS) | Next.js App Router (TS), BFF route handlers |
+| Data fetching | hooks + axios in `helper.js` | `api/` pure functions → `hooks/` (React Query) → `components/` |
 
----
+**Core laws** (enforced in review):
 
--- Getting Started (Local Setup)
+1. Feature-based folders — `features/<name>` owns everything for a feature
+2. ORM only, behind repositories — controllers never touch the DB
+3. Dependency injection — services receive collaborators via constructor
+4. TypeScript strict, validate at every boundary (DTO/Zod)
+5. Data fetching is separate from UI — components never call `fetch`/`axios`
 
---- Prerequisites
+## Getting Started
 
-- Node.js (v18+)
+### Prerequisites
+
+- Node.js 18+
 - MongoDB (local or Atlas)
+- A Firebase project (for Google OAuth)
 
---- Installation
+### 1. Clone
 
-1. Clone this repository:
+```bash
+git clone https://github.com/vishnu-vemula/TaskForge.git
+cd TaskForge
+```
 
-   ```bash
-   git clone https://github.com/vishnuvardhanvemula/mern-task-manager.git
-   ```
-
-2. Navigate into the project:
-
-   ```bash
-   cd mern-task-manager
-   ```
-
----
-
---- Backend Setup
+### 2. Backend
 
 ```bash
 cd backend
 npm install
 ```
 
-Create a `.env` file in the --backend-- directory:
+Create `backend/.env`:
 
 ```env
+PORT=3000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
+COOKIE_SECRET=your_cookie_secret
+FRONTEND_BASE_URL=http://localhost:5173
 ```
 
-Run the server:
-
 ```bash
-npm start
+npm start   # API on http://localhost:3000
 ```
 
-Server runs on `http://localhost:5000`.
-
----
-
---- Frontend Setup
+### 3. Frontend
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 ```
 
-Create a `.env` file in the --frontend-- directory:
+Create `frontend/.env`:
 
 ```env
-REACT_APP_API_URL=http://localhost:5000
+VITE_BACKEND_BASE_URL=http://localhost:3000
+VITE_FIREBASE_API_KEY=your_firebase_api_key
 ```
-
-Run the frontend:
 
 ```bash
-npm start
+npm run dev   # app on http://localhost:5173
 ```
 
-App runs on `http://localhost:3000`.
+## Scripts
 
----
+| Command | Location | Description |
+| ------- | -------- | ----------- |
+| `npm start` | `backend` | Start API server (nodemon) |
+| `npm run dev` | `frontend` | Start Vite dev server |
+| `npm run build` | `frontend` | Production build |
+| `npm run preview` | `frontend` | Preview production build |
+| `npm run lint` | `frontend` | ESLint |
 
--- Testing Locally
+## API Endpoints
 
-Run both frontend and backend servers, then visit `http://localhost:3000`.
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| POST | `/api/v1/user/signup` | Register a new user |
+| POST | `/api/v1/user/login` | Log in (sets JWT cookie) |
+| POST | `/api/v1/user/logout` | Log out (clears JWT cookie) |
+| POST | `/api/v1/user/google` | Google OAuth login |
+| GET | `/api/v1/tasks` | List tasks |
+| POST | `/api/v1/tasks` | Create a task |
+| PUT | `/api/v1/tasks/reorder` | Reorder tasks (drag-and-drop) |
+| PUT | `/api/v1/tasks/:id` | Update a task |
+| DELETE | `/api/v1/tasks/:id` | Delete a task |
 
----
+## Repository Layout
 
--- Scripts
+```
+├── AGENTS.md            # operating manual for AI coding agents
+├── SKILLS.md            # task workflows (load one before working)
+├── ARCHITECTURE.md      # architecture blueprint + migration plan
+├── backend/             # Express (legacy) → NestJS + Prisma (target)
+├── frontend/            # React + Vite (legacy) → Next.js App Router (target)
+└── images/              # screenshots
+```
 
-- `npm start` → Start development server
-- `npm build` → Build for production
+## Roadmap
 
----
+- [x] Phase 0 — agent harness + architecture blueprint (this docs set)
+- [ ] Phase 1 — NestJS skeleton; port users + auth; re-enable task-route auth guard
+- [ ] Phase 2 — Prisma behind repositories
+- [ ] Phase 3 — Next.js App Router frontend with three-layer data fetching + BFF
+- [ ] Phase 4 — Vitest suites, CI, Playwright smoke test
 
--- Future Enhancements
+## Future Enhancements
 
-- User Avatars
-- Real-time Notifications
-- Improved UI polish
+- User avatars
+- Real-time notifications
+- Teams / shared boards
 
----
+## Known Issues
 
--- Known Issues
+- Task endpoints currently unauthenticated (auth middleware disabled in legacy code — first fix in Phase 1)
+- JWT cookie bug in production (fix direction: BFF route handlers, Phase 3)
+- Minor UI alignment issues
 
-- Minor alignment issues in UI
-- JWT cookie bug in production (in progress)
+## Contributing
 
----
+Contributions, issues, and pull requests are welcome. Read `AGENTS.md` first — the architecture laws apply to every PR.
 
--- Contributing
+## Author
 
-Contributions, issues, and pull requests are welcome.
-Author
---Vishnu Vardhan Vemula-- – [GitHub](https://github.com/vishnuvardhanvemula)
-Do you want me to also make a --`.env.example` file-- (frontend + backend) that matches this README so your repo looks polished?
+Vishnu Vardhan Vemula — [GitHub](https://github.com/vishnu-vemula)

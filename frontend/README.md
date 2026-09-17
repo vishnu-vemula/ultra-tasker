@@ -1,8 +1,61 @@
-# React + Vite
+# Task Manager — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React SPA for the Task Manager application, built with Vite.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 18 (Vite)
+- Redux Toolkit (state management)
+- React Router (routing)
+- React Query (server state and caching)
+- React Hook Form + Zod (form validation)
+- React Beautiful DnD (drag-and-drop task board)
+- Tailwind CSS + Flowbite-React (styling and UI components)
+- Axios (API calls)
+- Firebase (Google OAuth)
+- React Toastify (notifications)
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env` file in the `frontend` directory:
+
+```env
+VITE_BACKEND_BASE_URL=http://localhost:3000
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+The app runs on `http://localhost:5173`.
+
+## Scripts
+
+| Command           | Description                |
+| ----------------- | -------------------------- |
+| `npm run dev`     | Start Vite dev server      |
+| `npm run build`   | Build for production       |
+| `npm run preview` | Preview production build   |
+| `npm run lint`    | Run ESLint                 |
+
+## Structure
+
+```
+src/
+├── components/       # Header, Footer, TaskBoard, OAuth, Button, Input, Notification
+├── pages/            # Home, Login, Signup
+├── redux/            # Redux Toolkit store and slices
+├── firebase.js       # Firebase (Google OAuth) config
+├── helper.js         # Axios client (baseURL from VITE_BACKEND_BASE_URL)
+├── App.jsx           # Routes and providers
+└── main.jsx          # Entry point
+```
