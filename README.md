@@ -1,21 +1,46 @@
 # Ultra Tasker
 
-A production-grade CRM built on a typed, feature-based stack: **contacts, companies, a drag-and-drop deal pipeline, tasks/activities, a KPI dashboard, and role-based user management** — with Firebase Authentication and Prisma + PostgreSQL.
+![Ultra Tasker](images/banner.svg)
+
+A production-grade CRM built on a typed, feature-based stack: **contacts, companies, a drag-and-drop deal pipeline with quote builder, tasks, activity timelines, tags, notifications, an audit trail, and a KPI dashboard** — with Firebase Authentication and Prisma + PostgreSQL.
 
 > Formerly a MERN task-manager demo. Fully rebuilt: TypeScript everywhere, Prisma ORM behind repositories, dependency-injected services, Zod-validated boundaries, and a three-layer frontend data architecture (`api/` → `hooks/` → `components/`).
 
+## Screenshots
+
+**Legacy UI (v1 task manager — new CRM screenshots coming after next deploy):**
+
+<details>
+<summary>View v1 screenshots</summary>
+
+| | |
+|---|---|
+| ![Login](images/login.png) | ![Signup](images/signup.png) |
+| ![Task Board](images/home.png) | ![Task Details](images/taskdetails.png) |
+| ![Edit Task](images/taskedit.png) | |
+
+</details>
+
 ## Features
 
-- **Auth** — Firebase Authentication (email/password + Google OAuth); the API verifies Bearer ID tokens on every request
-- **Contacts** — CRUD with statuses (Lead / Qualified / Customer / Churned), company links, search + pagination
-- **Companies** — CRUD with domain + industry
-- **Deal pipeline** — Kanban board across New → Qualified → Proposal → Negotiation → Won/Lost with drag-and-drop, persisted ordering, multi-currency values, close dates
+- **Auth** — Firebase Authentication (email/password + Google OAuth); the API verifies Bearer ID tokens on every request; ADMIN/MEMBER roles via custom claims
+- **Contacts** — CRUD with statuses, sources, company links, tags, search + pagination, CSV export
+- **Companies** — profiles with industry, size, revenue; detail view with contacts and deals
+- **Deal pipeline** — Kanban across New → Qualified → Proposal → Negotiation → Won/Lost with drag-and-drop, persisted ordering, probabilities, close dates, lost reasons
+- **Quote builder** — product catalog and deal line items; deal value auto-recalculates from its items
+- **Activities** — notes, calls, emails, meetings on a timeline per contact/deal; contacts track last-touch time
+- **Tags** — colored tags on contacts and deals, managed in Settings
 - **Tasks** — activities linked to contacts/deals, priorities, due dates, overdue tracking, quick-complete
-- **Dashboard** — pipeline value, won value, contact breakdown, stage distribution, task health
-- **User management** — ADMIN role (bootstrapped via env list) can view users and change roles (stored as Firebase custom claims)
-- **Production hygiene** — Helmet, CORS allow-list, rate limiting, compression, Pino structured logs, request validation, error envelope, graceful shutdown
+- **Notifications** — in-app bell with unread count; deal-won alerts and overdue-task reminders (deduped)
+- **Audit trail** — every create/update/delete/stage-change recorded per record, visible on detail pages
+- **Global search** — one box across contacts, companies and deals
+- **Dashboard** — pipeline value, won value, avg deal size, 6-month revenue trend, stage distribution, top companies, task health
+- **User management** — ADMINs can list users and change roles
+- **Production hygiene** — Helmet, CORS allow-list, rate limiting, compression, Pino structured logs, validation, error envelope, graceful shutdown
 
 ## Architecture
+
+![Architecture](images/architecture.svg)
 
 | Layer | Stack |
 |-------|-------|
@@ -26,6 +51,20 @@ A production-grade CRM built on a typed, feature-based stack: **contacts, compan
 | Frontend | React 18 + Vite + TypeScript, Tailwind CSS |
 | Client data | `features/*/api` (pure fetch functions) → `features/*/hooks` (React Query) → `components` (render only) |
 | DnD | @hello-pangea/dnd (maintained react-beautiful-dnd fork) |
+
+### Domain model map
+
+```
+User (Firebase UID, role)
+ ├── Company  ──< Contact ──< Deal >── Company
+ │                │  └──< Task >──────┘
+ │                ├──< Activity (NOTE/CALL/EMAIL/MEETING, also on Deal/Company)
+ │                └──< Tag (M2M, also on Deal)
+ ├── Product ──< DealItem >── Deal          ← quote builder, value = Σ(qty × unit price)
+ └── Notification (TASK_OVERDUE / DEAL_WON, deduped)
+
+AuditLog (CREATE/UPDATE/DELETE/STAGE_CHANGE per entity, owner-scoped)
+```
 
 Every record is scoped by `ownerId` — users only ever see their own CRM data. Full rules: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent workflows: [`AGENTS.md`](AGENTS.md) and [`SKILLS.md`](SKILLS.md).
 
@@ -66,7 +105,7 @@ Optional demo data:
 npm run db:seed
 ```
 
-> The seed assigns data to `SEED_OWNER_UID` (defaults to a placeholder). For the data to be visible to your account, sign in once, grab your Firebase UID (Settings → Users in Firebase console), put it in `.env` as `SEED_OWNER_UID`, and re-run the seed.
+> The seed assigns data to `SEED_OWNER_UID` (defaults to a placeholder). For the data to be visible to your account, sign in once, grab your Firebase UID, put it in `.env` as `SEED_OWNER_UID`, and re-run the seed.
 
 ### 3. Frontend
 
@@ -105,10 +144,21 @@ Base URL: `/api/v1` · Auth: `Authorization: Bearer <Firebase ID token>` on ever
 | POST | `/auth/session` | Sync profile, returns current user |
 | GET / PATCH | `/users`, `/users/:id/role` | List users / change role (ADMIN) |
 | GET / POST / PATCH / DELETE | `/contacts[/:id]` | Contacts CRUD (search, status, pagination) |
+| GET | `/contacts/export` | CSV download |
+| PATCH | `/contacts/:id/tags` | Replace contact tags |
 | GET / POST / PATCH / DELETE | `/companies[/:id]` | Companies CRUD |
-| GET / POST / PATCH / DELETE | `/deals[/:id]` | Deals CRUD |
+| GET / POST / PATCH / DELETE | `/deals[/:id]` | Deals CRUD (stage changes trigger close/probability logic) |
 | PATCH | `/deals/reorder` | Kanban reorder (batch stage + position) |
+| PATCH | `/deals/:id/tags` | Replace deal tags |
+| POST / PATCH / DELETE | `/deals/:id/items[/:itemId]` | Quote line items (auto-recalc deal value) |
 | GET / POST / PATCH / DELETE | `/tasks[/:id]` | Tasks CRUD |
+| GET / POST / PATCH / DELETE | `/tags[/:id]` | Tag CRUD |
+| GET / POST / PATCH / DELETE | `/products[/:id]` | Product catalog CRUD |
+| GET / POST / PATCH / DELETE | `/activities[/:id]` | Activity timeline CRUD |
+| GET | `/notifications` | List + unread count (syncs overdue-task alerts) |
+| POST | `/notifications/read` | Mark read (ids or all) |
+| GET | `/search?q=` | Global search |
+| GET | `/audit?entityType=&entityId=` | Audit trail for a record |
 | GET | `/dashboard/stats` | Dashboard aggregates |
 
 ## Project Structure
@@ -119,25 +169,26 @@ Base URL: `/api/v1` · Auth: `Authorization: Bearer <Firebase ID token>` on ever
 │   ├── prisma/            # schema.prisma, migrations, seed
 │   └── src/
 │       ├── config/        # Zod-validated env
-│       ├── common/        # middleware (auth, errors), utils
+│       ├── common/        # middleware (auth, errors), utils, audit/notification ports
 │       ├── database/      # Prisma + Firebase Admin singletons
-│       ├── features/      # auth, users, contacts, companies, deals, tasks, dashboard
+│       ├── features/      # auth, users, contacts, companies, deals, tasks,
+│       │                  # tags, products, activities, notifications, audit, search, dashboard
 │       │   └── <name>/    # router → controller → service → repository + schemas
 │       ├── container.ts   # DI composition root
 │       └── app.ts / main.ts
 └── frontend/
     └── src/
         ├── features/<name>/   # api/ (pure fetch) → hooks/ (React Query) → components/
-        └── shared/            # api-client, UI primitives, types
+        └── shared/            # api-client, UI primitives, audit timeline, types
 ```
 
 ## Roadmap
 
 - [ ] CI (typecheck + lint + test on push)
 - [ ] Playwright smoke tests
-- [ ] CSV import/export for contacts
-- [ ] Activity timeline per contact
+- [ ] CSV import (export is live)
 - [ ] Email reminders for overdue tasks
+- [ ] Multiple pipelines per workspace
 
 ## Contributing
 
