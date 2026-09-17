@@ -35,6 +35,9 @@ export function DealCard({ deal, index, onEdit }: DealCardProps) {
             {formatCurrency(deal.value, deal.currency)}
           </p>
           <div className="space-y-1 text-xs text-slate-500">
+            <p className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+              {deal.probability}% likely
+            </p>
             {deal.contact ? (
               <p className="flex items-center gap-1">
                 <User className="h-3 w-3" />
