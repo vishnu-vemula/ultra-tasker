@@ -103,6 +103,8 @@ model User {
   tags        Tag[]
   products    Product[]
   activities  Activity[]
+  dealItems   DealItem[]
+  notifications Notification[]
 }
 
 model Company {
@@ -210,9 +212,10 @@ model Deal {
   expectedCloseDate DateTime?
   closedAt          DateTime?
   notes             String?
-  items             DealItem[]
-  activities        Activity[]
-  tags              Tag[]
+  items       DealItem[]
+  activities  Activity[]
+  tasks       Task[]
+  tags        Tag[]
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
