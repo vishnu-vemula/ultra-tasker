@@ -59,3 +59,38 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T |
   const body = (await response.json()) as ApiSuccessBody<T>
   return body.data
 }
+
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL
+  const token = await getAuth().currentUser?.getIdToken()
+  const headers = new Headers()
+  headers.set('Accept', 'text/csv')
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  const response = await fetch(`${baseUrl}${path}`, { headers })
+
+  if (!response.ok) {
+    let code = 'UNKNOWN'
+    let message = response.statusText || 'Download failed'
+    try {
+      const errorBody = JSON.parse(await response.text()) as Partial<ApiErrorBody>
+      if (errorBody?.error) {
+        code = errorBody.error.code
+        message = errorBody.error.message
+      }
+    } catch {
+      message = response.statusText || 'Download failed'
+    }
+    throw new ApiError(response.status, code, message)
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}

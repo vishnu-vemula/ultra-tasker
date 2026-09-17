@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search, UserPlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Download, Plus, Search, UserPlus } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { useContacts } from '../hooks/use-contacts'
 import { useDeleteContact } from '../hooks/use-contact-mutations'
 import { ContactDialog } from './contact-dialog'
 import { PageHeader } from '../../../shared/components/page-header'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { SkeletonList } from '../../../shared/components/skeleton'
+import { EmptyState } from '../../../shared/components/empty-state'
 import { StatusBadge } from '../../../shared/components/status-badge'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
+import { apiDownload } from '../../../shared/lib/api-client'
 import { formatDate } from '../../../shared/lib/format'
-import { CONTACT_STATUSES, type Contact, type ContactStatus } from '../../../shared/types'
+import { CONTACT_STATUSES, type ContactStatus } from '../../../shared/types'
 
 function initials(name: string): string {
   return name
@@ -21,10 +25,10 @@ function initials(name: string): string {
 }
 
 export function ContactsPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<ContactStatus | ''>('')
   const [page, setPage] = useState(1)
-  const [editing, setEditing] = useState<Contact | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const debouncedSearch = useDebouncedValue(search)
@@ -42,14 +46,15 @@ export function ContactsPage() {
   const canPrev = page > 1
   const canNext = page < totalPages
 
-  const openCreate = () => {
-    setEditing(null)
-    setDialogOpen(true)
-  }
+  const openCreate = () => setDialogOpen(true)
 
-  const openEdit = (contact: Contact) => {
-    setEditing(contact)
-    setDialogOpen(true)
+  const exportCsv = async () => {
+    try {
+      await apiDownload('/contacts/export', 'contacts.csv')
+      toast.success('Contacts exported')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Export failed')
+    }
   }
 
   return (
@@ -58,10 +63,16 @@ export function ContactsPage() {
         title="Contacts"
         description="Manage the people in your pipeline"
         action={
-          <button type="button" className="btn-primary" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            New contact
-          </button>
+          <div className="flex gap-2">
+            <button type="button" className="btn-secondary" onClick={() => void exportCsv()}>
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
+            <button type="button" className="btn-primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New contact
+            </button>
+          </div>
         }
       />
       <div className="mb-4 flex flex-wrap gap-3">
@@ -98,14 +109,17 @@ export function ContactsPage() {
       {isLoading ? (
         <SkeletonList count={5} />
       ) : !data || data.items.length === 0 ? (
-        <div className="card flex flex-col items-center gap-3 p-12 text-center">
-          <UserPlus className="h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">No contacts yet. Add your first contact to get started.</p>
-          <button type="button" className="btn-primary" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            New contact
-          </button>
-        </div>
+        <EmptyState
+          icon={UserPlus}
+          title="No contacts yet"
+          description="Add your first contact to get started."
+          action={
+            <button type="button" className="btn-primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New contact
+            </button>
+          }
+        />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
@@ -125,7 +139,7 @@ export function ContactsPage() {
                 <tr
                   key={contact.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => openEdit(contact)}
+                  onClick={() => navigate(`/contacts/${contact.id}`)}
                 >
                   <td className="td">
                     <div className="flex items-center gap-3">
@@ -177,7 +191,7 @@ export function ContactsPage() {
           </div>
         </div>
       )}
-      {dialogOpen ? <ContactDialog contact={editing} onClose={() => setDialogOpen(false)} /> : null}
+      {dialogOpen ? <ContactDialog contact={null} onClose={() => setDialogOpen(false)} /> : null}
     </div>
   )
 }

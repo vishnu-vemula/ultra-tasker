@@ -1,5 +1,5 @@
 import { apiFetch } from '../../../shared/lib/api-client'
-import type { Contact, ContactStatus, Page } from '../../../shared/types'
+import type { Contact, ContactDetail, ContactSource, ContactStatus, Page } from '../../../shared/types'
 
 export interface ListContactsParams {
   search?: string
@@ -15,6 +15,10 @@ export interface ContactInput {
   phone?: string
   position?: string
   status?: ContactStatus
+  website?: string
+  city?: string
+  country?: string
+  source?: ContactSource | null
   companyId?: string | null
   notes?: string
 }
@@ -41,9 +45,18 @@ export async function listContacts(params: ListContactsParams): Promise<Page<Con
   return result
 }
 
-export async function getContact(id: string): Promise<Contact> {
-  const result = await apiFetch<Contact>(`/contacts/${id}`)
+export async function getContactDetail(id: string): Promise<ContactDetail> {
+  const result = await apiFetch<ContactDetail>(`/contacts/${id}`)
   if (result === null) throw new Error('Unexpected empty response from /contacts/:id')
+  return result
+}
+
+export async function setContactTags(id: string, tagIds: string[]): Promise<Contact> {
+  const result = await apiFetch<Contact>(`/contacts/${id}/tags`, {
+    method: 'PATCH',
+    body: JSON.stringify({ tagIds }),
+  })
+  if (result === null) throw new Error('Unexpected empty response from PATCH /contacts/:id/tags')
   return result
 }
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Building2, Plus, Search } from 'lucide-react'
 import { useCompanies } from '../hooks/use-companies'
 import { useDeleteCompany } from '../hooks/use-company-mutations'
@@ -6,14 +7,14 @@ import { CompanyDialog } from './company-dialog'
 import { PageHeader } from '../../../shared/components/page-header'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { SkeletonList } from '../../../shared/components/skeleton'
+import { EmptyState } from '../../../shared/components/empty-state'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { formatDate } from '../../../shared/lib/format'
-import type { Company } from '../../../shared/types'
 
 export function CompaniesPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [editing, setEditing] = useState<Company | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const debouncedSearch = useDebouncedValue(search)
@@ -31,15 +32,7 @@ export function CompaniesPage() {
   const canPrev = page > 1
   const canNext = page < totalPages
 
-  const openCreate = () => {
-    setEditing(null)
-    setDialogOpen(true)
-  }
-
-  const openEdit = (company: Company) => {
-    setEditing(company)
-    setDialogOpen(true)
-  }
+  const openCreate = () => setDialogOpen(true)
 
   return (
     <div>
@@ -72,14 +65,17 @@ export function CompaniesPage() {
       {isLoading ? (
         <SkeletonList count={5} />
       ) : !data || data.items.length === 0 ? (
-        <div className="card flex flex-col items-center gap-3 p-12 text-center">
-          <Building2 className="h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">No companies yet. Add your first company to get started.</p>
-          <button type="button" className="btn-primary" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            New company
-          </button>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="No companies yet"
+          description="Add your first company to get started."
+          action={
+            <button type="button" className="btn-primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New company
+            </button>
+          }
+        />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
@@ -97,7 +93,7 @@ export function CompaniesPage() {
                 <tr
                   key={company.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => openEdit(company)}
+                  onClick={() => navigate(`/companies/${company.id}`)}
                 >
                   <td className="td font-medium text-slate-900">{company.name}</td>
                   <td className="td">{company.domain ?? '—'}</td>
@@ -138,7 +134,7 @@ export function CompaniesPage() {
           </div>
         </div>
       )}
-      {dialogOpen ? <CompanyDialog company={editing} onClose={() => setDialogOpen(false)} /> : null}
+      {dialogOpen ? <CompanyDialog company={null} onClose={() => setDialogOpen(false)} /> : null}
     </div>
   )
 }

@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog } from '../../../shared/components/dialog'
-import { CONTACT_STATUSES, type Contact } from '../../../shared/types'
+import { CONTACT_SOURCES, CONTACT_STATUSES, type Contact } from '../../../shared/types'
 import { contactFormSchema, type ContactFormValues } from '../model/schema'
-import { useCreateContact, useUpdateContact } from '../hooks/use-contact-mutations'
+import { useCreateContact, useSetContactTags, useUpdateContact } from '../hooks/use-contact-mutations'
 import { useCompanies } from '../../companies/hooks/use-companies'
+import { TagSelect } from '../../tags/components/tag-select'
 
 interface ContactDialogProps {
   contact: Contact | null
@@ -13,7 +15,19 @@ interface ContactDialogProps {
 
 function toFormValues(contact: Contact | null): ContactFormValues {
   if (!contact) {
-    return { name: '', email: '', phone: '', position: '', status: 'LEAD', companyId: '', notes: '' }
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      position: '',
+      status: 'LEAD',
+      website: '',
+      city: '',
+      country: '',
+      source: '',
+      companyId: '',
+      notes: '',
+    }
   }
   return {
     name: contact.name,
@@ -21,15 +35,25 @@ function toFormValues(contact: Contact | null): ContactFormValues {
     phone: contact.phone ?? '',
     position: contact.position ?? '',
     status: contact.status,
+    website: contact.website ?? '',
+    city: contact.city ?? '',
+    country: contact.country ?? '',
+    source: contact.source ?? '',
     companyId: contact.companyId ?? '',
     notes: contact.notes ?? '',
   }
+}
+
+function sameTagIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id))
 }
 
 export function ContactDialog({ contact, onClose }: ContactDialogProps) {
   const { data: companyPage } = useCompanies({ page: 1, pageSize: 100 })
   const createMutation = useCreateContact()
   const updateMutation = useUpdateContact()
+  const setTagsMutation = useSetContactTags()
+  const [tagIds, setTagIds] = useState<string[]>(contact?.tags.map((tag) => tag.id) ?? [])
 
   const {
     register,
@@ -47,18 +71,28 @@ export function ContactDialog({ contact, onClose }: ContactDialogProps) {
       phone: values.phone || undefined,
       position: values.position || undefined,
       status: values.status,
+      website: values.website || undefined,
+      city: values.city || undefined,
+      country: values.country || undefined,
+      source: values.source || null,
       companyId: values.companyId || null,
       notes: values.notes || undefined,
     }
     if (contact) {
-      await updateMutation.mutateAsync({ id: contact.id, input })
+      const updated = await updateMutation.mutateAsync({ id: contact.id, input })
+      if (!sameTagIds(tagIds, updated.tags.map((tag) => tag.id))) {
+        await setTagsMutation.mutateAsync({ id: contact.id, tagIds })
+      }
     } else {
-      await createMutation.mutateAsync(input)
+      const created = await createMutation.mutateAsync(input)
+      if (tagIds.length > 0) {
+        await setTagsMutation.mutateAsync({ id: created.id, tagIds })
+      }
     }
     onClose()
   })
 
-  const submitting = createMutation.isPending || updateMutation.isPending
+  const submitting = createMutation.isPending || updateMutation.isPending || setTagsMutation.isPending
 
   return (
     <Dialog title={contact ? 'Edit contact' : 'New contact'} onClose={onClose}>
@@ -105,18 +139,60 @@ export function ContactDialog({ contact, onClose }: ContactDialogProps) {
             </select>
           </div>
         </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="contact-website" className="label">
+              Website
+            </label>
+            <input id="contact-website" type="text" placeholder="acme.com" className="input" {...register('website')} />
+          </div>
+          <div>
+            <label htmlFor="contact-company" className="label">
+              Company
+            </label>
+            <select id="contact-company" className="select" {...register('companyId')}>
+              <option value="">No company</option>
+              {(companyPage?.items ?? []).map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="contact-city" className="label">
+              City
+            </label>
+            <input id="contact-city" type="text" className="input" {...register('city')} />
+          </div>
+          <div>
+            <label htmlFor="contact-country" className="label">
+              Country
+            </label>
+            <input id="contact-country" type="text" className="input" {...register('country')} />
+          </div>
+          <div>
+            <label htmlFor="contact-source" className="label">
+              Source
+            </label>
+            <select id="contact-source" className="select" {...register('source')}>
+              <option value="">No source</option>
+              {CONTACT_SOURCES.map((source) => (
+                <option key={source} value={source}>
+                  {source
+                    .split('_')
+                    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+                    .join(' ')}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div>
-          <label htmlFor="contact-company" className="label">
-            Company
-          </label>
-          <select id="contact-company" className="select" {...register('companyId')}>
-            <option value="">No company</option>
-            {(companyPage?.items ?? []).map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
+          <span className="label">Tags</span>
+          <TagSelect value={tagIds} onChange={setTagIds} />
         </div>
         <div>
           <label htmlFor="contact-notes" className="label">

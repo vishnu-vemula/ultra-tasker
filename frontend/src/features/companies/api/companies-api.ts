@@ -1,5 +1,5 @@
 import { apiFetch } from '../../../shared/lib/api-client'
-import type { Company, Page } from '../../../shared/types'
+import type { Company, CompanyDetail, Page } from '../../../shared/types'
 
 export interface ListCompaniesParams {
   search?: string
@@ -11,6 +11,12 @@ export interface CompanyInput {
   name: string
   domain?: string
   industry?: string
+  phone?: string
+  city?: string
+  country?: string
+  employeeCount?: number | null
+  annualRevenue?: number | null
+  notes?: string
 }
 
 export async function listCompanies(params: ListCompaniesParams): Promise<Page<Company>> {
@@ -24,8 +30,8 @@ export async function listCompanies(params: ListCompaniesParams): Promise<Page<C
   return result
 }
 
-export async function getCompany(id: string): Promise<Company> {
-  const result = await apiFetch<Company>(`/companies/${id}`)
+export async function getCompanyDetail(id: string): Promise<CompanyDetail> {
+  const result = await apiFetch<CompanyDetail>(`/companies/${id}`)
   if (result === null) throw new Error('Unexpected empty response from /companies/:id')
   return result
 }

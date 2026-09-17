@@ -6,6 +6,13 @@ export const contactFormSchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   position: z.string().optional().or(z.literal('')),
   status: z.enum(['LEAD', 'QUALIFIED', 'CUSTOMER', 'CHURNED']).optional(),
+  website: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  country: z.string().optional().or(z.literal('')),
+  source: z
+    .enum(['REFERRAL', 'WEBSITE', 'CAMPAIGN', 'COLD_OUTREACH', 'EVENT', 'OTHER'])
+    .optional()
+    .or(z.literal('')),
   companyId: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
 })
