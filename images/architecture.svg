@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560" role="img" aria-label="Ultra Tasker architecture diagram">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 10; }
+    .title { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .sub { font: 400 11px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+    .layer { font: 600 12px 'Segoe UI', Arial, sans-serif; fill: #4338ca; }
+  </style>
+
+  <rect x="20" y="20" width="280" height="120" rx="10" class="box"/>
+  <text x="40" y="48" class="title">Browser — React SPA</text>
+  <text x="40" y="70" class="sub">features/*/api (fetch) → hooks (React Query)</text>
+  <text x="40" y="88" class="sub">→ components (render only)</text>
+  <text x="40" y="106" class="sub">Firebase JS SDK sign-in</text>
+
+  <rect x="620" y="20" width="280" height="120" rx="10" class="box"/>
+  <text x="640" y="48" class="title">Firebase Authentication</text>
+  <text x="640" y="70" class="sub">Email/password + Google</text>
+  <text x="640" y="88" class="sub">ID tokens + custom claims (roles)</text>
+  <text x="640" y="106" class="sub">User management (Admin SDK)</text>
+
+  <rect x="20" y="220" width="560" height="240" rx="10" class="box"/>
+  <text x="40" y="248" class="title">Express API — TypeScript (feature-based)</text>
+  <rect x="40" y="264" width="520" height="30" rx="6" fill="#eef2ff"/>
+  <text x="52" y="284" class="layer">middleware: helmet · CORS · rate-limit · pino · auth guard (verify ID token)</text>
+  <rect x="40" y="302" width="520" height="30" rx="6" fill="#eef2ff"/>
+  <text x="52" y="322" class="layer">routers + controllers: Zod validation, thin handlers, { data } envelope</text>
+  <rect x="40" y="340" width="520" height="30" rx="6" fill="#eef2ff"/>
+  <text x="52" y="360" class="layer">services: business logic, ownership guards, stage rules, notifications, audit</text>
+  <rect x="40" y="378" width="520" height="30" rx="6" fill="#eef2ff"/>
+  <text x="52" y="398" class="layer">repositories: the only layer touching Prisma</text>
+  <text x="40" y="436" class="sub">DI composition root: backend/src/container.ts</text>
+
+  <rect x="620" y="220" width="280" height="120" rx="10" class="box"/>
+  <text x="640" y="248" class="title">PostgreSQL — Prisma ORM</text>
+  <text x="640" y="270" class="sub">contacts · companies · deals + line items</text>
+  <text x="640" y="288" class="sub">tasks · activities · tags · products</text>
+  <text x="640" y="306" class="sub">notifications · audit log · users</text>
+  <text x="640" y="326" class="sub">every row scoped by ownerId</text>
+
+  <line x1="160" y1="140" x2="240" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="120" y="188" class="sub">Bearer ID token</text>
+  <line x1="300" y1="80" x2="620" y2="80" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+  <text x="380" y="70" class="sub">sign-in / tokens</text>
+  <line x1="580" y1="280" x2="620" y2="280" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="760" y1="140" x2="580" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+  <text x="600" y="190" class="sub">Admin SDK verify</text>
+  <text x="20" y="510" class="sub">Sanctioned aggregates: DashboardService · SearchService · AuditLogger / NotificationDispatcher ports in common/</text>
+  <text x="20" y="532" class="sub">Laws: feature folders · repositories only ORM · constructor DI · Zod at boundaries · three-layer frontend · ownership on every query</text>
+</svg>

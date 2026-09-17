@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="Ultra Tasker — production-grade CRM">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="16" fill="url(#bg)"/>
+  <g transform="translate(64,70)">
+    <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#bolt)"/>
+    <path d="M36 12 L20 38 L31 38 L28 52 L44 26 L33 26 Z" fill="#0f172a"/>
+    <text x="88" y="34" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#f8fafc">Ultra Tasker</text>
+    <text x="88" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#c7d2fe">Production-grade CRM · Contacts · Deals · Tasks</text>
+  </g>
+  <g transform="translate(760,56)" font-family="Segoe UI, Arial, sans-serif">
+    <rect x="0" y="0" width="128" height="188" rx="10" fill="#1e293b"/>
+    <rect x="12" y="12" width="104" height="12" rx="6" fill="#475569"/>
+    <rect x="12" y="38" width="104" height="34" rx="8" fill="#6366f1"/>
+    <rect x="12" y="80" width="104" height="34" rx="8" fill="#4f46e5"/>
+    <rect x="12" y="122" width="104" height="34" rx="8" fill="#818cf8"/>
+    <text x="12" y="176" font-size="12" fill="#94a3b8">Contacts</text>
+    <rect x="148" y="0" width="128" height="188" rx="10" fill="#1e293b"/>
+    <rect x="160" y="12" width="104" height="12" rx="6" fill="#475569"/>
+    <rect x="160" y="38" width="104" height="34" rx="8" fill="#10b981"/>
+    <rect x="160" y="80" width="104" height="34" rx="8" fill="#059669"/>
+    <rect x="160" y="122" width="104" height="34" rx="8" fill="#34d399"/>
+    <text x="160" y="176" font-size="12" fill="#94a3b8">Deals</text>
+    <rect x="296" y="0" width="128" height="188" rx="10" fill="#1e293b"/>
+    <rect x="308" y="12" width="104" height="12" rx="6" fill="#475569"/>
+    <rect x="308" y="38" width="104" height="34" rx="8" fill="#f59e0b"/>
+    <rect x="308" y="80" width="104" height="34" rx="8" fill="#fbbf24"/>
+    <rect x="308" y="122" width="104" height="34" rx="8" fill="#fcd34d"/>
+    <text x="308" y="176" font-size="12" fill="#94a3b8">Tasks</text>
+  </g>
+  <text x="64" y="236" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#94a3b8">TypeScript · Prisma + PostgreSQL · Firebase Auth · React Query · Feature-based architecture</text>
+</svg>
