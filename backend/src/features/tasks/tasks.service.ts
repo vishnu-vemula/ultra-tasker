@@ -1,9 +1,13 @@
 import { AppError } from '../../common/utils/app-error';
+import type { AuditLogger } from '../../common/utils/audit-logger';
 import type { ITasksRepository, TaskWithRelations } from './tasks.repository';
 import type { CreateTaskInput, ListTasksQuery, UpdateTaskInput } from './tasks.schemas';
 
 export class TasksService {
-  constructor(private readonly repo: ITasksRepository) {}
+  constructor(
+    private readonly repo: ITasksRepository,
+    private readonly audit: AuditLogger
+  ) {}
 
   list(ownerId: string, query: ListTasksQuery): Promise<{ items: TaskWithRelations[]; total: number }> {
     return this.repo.list({ ...query, ownerId });
@@ -17,7 +21,9 @@ export class TasksService {
 
   async create(ownerId: string, input: CreateTaskInput): Promise<TaskWithRelations> {
     await this.assertRelationsOwned(ownerId, input.contactId ?? null, input.dealId ?? null);
-    return this.repo.create(ownerId, input);
+    const task = await this.repo.create(ownerId, input);
+    await this.audit.log(ownerId, 'CREATE', 'TASK', task.id, `Created task "${task.title}"`);
+    return task;
   }
 
   async update(ownerId: string, id: string, input: UpdateTaskInput): Promise<TaskWithRelations> {
@@ -25,12 +31,15 @@ export class TasksService {
     if (input.contactId !== undefined || input.dealId !== undefined) {
       await this.assertRelationsOwned(ownerId, input.contactId ?? null, input.dealId ?? null);
     }
-    return this.repo.update(id, ownerId, input);
+    const task = await this.repo.update(id, ownerId, input);
+    await this.audit.log(ownerId, 'UPDATE', 'TASK', id, `Updated task "${task.title}"`);
+    return task;
   }
 
   async delete(ownerId: string, id: string): Promise<void> {
-    await this.get(ownerId, id);
+    const task = await this.get(ownerId, id);
     await this.repo.delete(id, ownerId);
+    await this.audit.log(ownerId, 'DELETE', 'TASK', id, `Deleted task "${task.title}"`);
   }
 
   private async assertRelationsOwned(ownerId: string, contactId: string | null, dealId: string | null): Promise<void> {

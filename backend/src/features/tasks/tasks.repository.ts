@@ -29,6 +29,7 @@ export type UpdateTaskInput = Partial<CreateTaskInput>;
 export interface ITasksRepository {
   list(input: ListTasksInput): Promise<{ items: TaskWithRelations[]; total: number }>;
   findByIdAndOwner(id: string, ownerId: string): Promise<TaskWithRelations | null>;
+  findOverdue(ownerId: string): Promise<{ id: string; title: string }[]>;
   relationOwnedByOwner(kind: 'contact' | 'deal', id: string, ownerId: string): Promise<boolean>;
   create(ownerId: string, input: CreateTaskInput): Promise<TaskWithRelations>;
   update(id: string, ownerId: string, input: UpdateTaskInput): Promise<TaskWithRelations>;
@@ -63,6 +64,14 @@ export class TasksRepository implements ITasksRepository {
 
   findByIdAndOwner(id: string, ownerId: string): Promise<TaskWithRelations | null> {
     return this.prisma.task.findFirst({ where: { id, ownerId }, include: taskInclude });
+  }
+
+  findOverdue(ownerId: string): Promise<{ id: string; title: string }[]> {
+    return this.prisma.task.findMany({
+      where: { ownerId, status: { not: 'DONE' }, dueDate: { lt: new Date() } },
+      select: { id: true, title: true },
+      take: 50
+    });
   }
 
   relationOwnedByOwner(kind: 'contact' | 'deal', id: string, ownerId: string): Promise<boolean> {
