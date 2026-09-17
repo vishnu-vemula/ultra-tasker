@@ -1,10 +1,10 @@
-import type { Prisma, User } from '@prisma/client';
+import type { ContactStatus, Prisma } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
 
 export interface ContactWhereInput {
   ownerId: string;
   search?: string;
-  status?: Prisma.EnumContactStatusFilter | string;
+  status?: ContactStatus;
   companyId?: string;
 }
 
@@ -38,7 +38,7 @@ export class ContactsRepository implements IContactsRepository {
 
   private buildWhere(input: ContactWhereInput): Prisma.ContactWhereInput {
     const where: Prisma.ContactWhereInput = { ownerId: input.ownerId };
-    if (input.status) where.status = input.status as ContactStatusValue;
+    if (input.status) where.status = input.status;
     if (input.companyId) where.companyId = input.companyId;
     if (input.search) {
       where.OR = [
@@ -107,11 +107,4 @@ export class ContactsRepository implements IContactsRepository {
   }
 }
 
-type ContactStatusValue = NonNullable<Prisma.ContactWhereInput['status']> extends infer T
-  ? T extends string
-    ? T
-    : never
-  : never;
-
 export type ContactWithCompany = Prisma.ContactGetPayload<{ include: { company: true } }>;
-export type { User };

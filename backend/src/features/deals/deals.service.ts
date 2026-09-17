@@ -1,5 +1,4 @@
 import { AppError } from '../../common/utils/app-error';
-import type { DealStage } from '@prisma/client';
 import type { DealWithRelations, IDealsRepository } from './deals.repository';
 import type { CreateDealInput, ListDealsQuery, ReorderDealsInput, UpdateDealInput } from './deals.schemas';
 
@@ -52,10 +51,7 @@ export class DealsService {
     if (missing.length > 0) {
       throw AppError.notFound('Deal');
     }
-    return this.repo.reorder(
-      ownerId,
-      input.updates.map((update) => ({ id: update.id, stage: update.stage as DealStage, position: update.position }))
-    );
+    return this.repo.reorder(ownerId, input.updates);
   }
 
   private async assertRelationsOwned(ownerId: string, contactId: string | null, companyId: string | null): Promise<void> {

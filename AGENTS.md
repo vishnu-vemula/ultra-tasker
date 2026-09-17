@@ -1,77 +1,86 @@
-# AGENTS.md — TaskForge Engineering Agent Harness
+# AGENTS.md — Ultra Tasker Engineering Agent Harness
 
 Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace, Cursor, etc.) working in this repository. **Read this file and `ARCHITECTURE.md` fully before making any change.** Load the matching skill from `SKILLS.md` before starting a task.
 
 ## Project
 
-**TaskForge** (formerly *Task-Manager*) — a full-stack task management app with auth, task CRUD, and a drag-and-drop Kanban board.
+**Ultra Tasker** — a production-grade CRM (contacts, companies, deals pipeline, tasks, dashboard, user management) with Firebase auth, Prisma + PostgreSQL, and a fully TypeScript feature-based codebase.
 
-- **Status:** mid-migration. Legacy MERN (JS) code lives in `backend/` and `frontend/`; target is TypeScript + NestJS + Prisma + DI backend and Next.js App Router frontend. Always check §7 of `ARCHITECTURE.md` to see which phase a folder is in, and follow the **target** patterns for new code.
-- **Live demo:** https://taskmanger-4sy5.onrender.com (Render free tier — cold starts are slow)
+- Stack: Express + TS backend, React + Vite + TS frontend, Firebase Authentication, Prisma ORM, React Query, Tailwind.
+- The old MERN task-manager code is gone; everything follows the target architecture described in `ARCHITECTURE.md`. There is no migration in flight — build new work on the existing patterns.
 
 ## Repository layout
 
 ```
 ├── AGENTS.md            ← you are here
 ├── SKILLS.md            ← task workflows (load one before working)
-├── ARCHITECTURE.md      ← architecture laws + migration plan
+├── ARCHITECTURE.md      ← architecture laws + stack details
 ├── README.md
-├── backend/             # Express (legacy) → NestJS + Prisma (target)
-├── frontend/            # React + Vite (legacy) → Next.js App Router (target)
-└── images/              # screenshots
+├── backend/             # Express + TS + Prisma + Firebase Admin
+│   ├── prisma/          # schema.prisma, migrations, seed.ts
+│   └── src/
+│       ├── config/      # env.ts — the ONLY file reading process.env
+│       ├── common/      # middleware (auth, errors), utils (AppError, asyncHandler)
+│       ├── database/    # prisma.ts, firebase.ts
+│       ├── features/    # one folder per feature
+│       ├── container.ts # DI composition root
+│       └── app.ts / main.ts
+└── frontend/
+    └── src/
+        ├── features/    # one folder per feature (api/ hooks/ components/ model/)
+        └── shared/      # api-client, UI primitives, format helpers, cross-feature types
 ```
 
 ## Commands
 
 | What | Where | Command |
 |------|-------|---------|
-| Run backend (legacy) | `backend/` | `npm start` (needs `nodemon`; port defaults to 3000, set `PORT` to override) |
-| Run frontend (legacy) | `frontend/` | `npm run dev` |
-| Build frontend | `frontend/` | `npm run build` |
-| Lint frontend | `frontend/` | `npm run lint` |
-| Backend (target, once NestJS lands) | `backend/` | `npm run start:dev`, `npm run test`, `npm run test:e2e`, `npx prisma migrate dev` |
-| Frontend (target, once Next.js lands) | `frontend/` | `npm run dev`, `npm run lint`, `npm run typecheck`, `npm run test` |
+| Run backend | `backend/` | `npm run dev` (port 4000; needs `.env` — copy `.env.example`) |
+| Migrate DB | `backend/` | `npx prisma migrate dev --name <change>` |
+| Seed demo data | `backend/` | `npm run db:seed` (reads `SEED_OWNER_UID`) |
+| Backend checks | `backend/` | `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` |
+| Run frontend | `frontend/` | `npm run dev` (port 5173; needs `.env` from `.env.example`) |
+| Frontend checks | `frontend/` | `npm run typecheck`, `npm run lint`, `npm run build` |
 
-Always run lint/typecheck for the area you touched before declaring a task done.
+Running the app requires PostgreSQL and Firebase credentials (see README "Getting Started"). Typecheck/lint/test run without them.
 
 ## Architecture laws (non-negotiable)
 
-1. **Feature-based organization.** New code for a feature goes in that feature's folder (`backend/src/features/<name>/`, `frontend/src/features/<name>/`). Shared, feature-agnostic code goes in `common/` (backend) or `shared/` (frontend). If you're adding a second import from one feature into another, stop — extract to shared or reconsider.
-2. **ORM only, behind repositories.** No database calls in controllers or services. Only repository classes touch Prisma/Mongoose.
-3. **Dependency injection.** Services get repositories/config via constructor injection (NestJS IoC). Never `new` a service inside another class, never read `process.env` outside `backend/src/config/env.ts`.
-4. **TypeScript strict.** No `any`, no `@ts-ignore`, no non-null assertions unless provably safe. Types come from DTOs (backend) and `model/` (frontend).
-5. **Frontend three-layer data fetching.** `api/` = pure async functions (no React) → `hooks/` = React Query wrappers → `components/` = render only. A component calling `fetch`/`axios` directly is a bug.
-6. **Validate at boundaries.** Every request body, env var, and external API response is validated (class-validator/DTO backend, Zod frontend).
-7. **Auth is not optional.** All `/api/v1/tasks` routes require `JwtAuthGuard`. (Legacy has it commented out — do not replicate that bug; see Known landmines.)
+1. **Feature-based organization.** Feature code goes in `backend/src/features/<name>/` or `frontend/src/features/<name>/`. Cross-cutting, feature-agnostic code goes in `common/` (backend) or `shared/` (frontend). If you're adding a second import from one feature into another, stop — extract to shared or reconsider.
+2. **ORM only, behind repositories.** No Prisma calls in controllers or services. Only repository classes (and `DashboardService`, the one sanctioned aggregate) touch Prisma.
+3. **Dependency injection.** Services receive repositories/collaborators via constructor; everything is wired in `backend/src/container.ts`. Never `new` a service inside a class, never import a service singleton. Read `process.env` only in `backend/src/config/env.ts`.
+4. **TypeScript strict.** No `any`, no `@ts-ignore`, no non-null assertions unless provably safe. Backend types flow from Prisma models + Zod schemas; frontend types live in `shared/types.ts` and feature `model/` folders.
+5. **Frontend three-layer data fetching.** `api/` = pure async functions (fetch, zero React imports) → `hooks/` = React Query wrappers (query keys, optimistic updates) → `components/` = render only. A component calling `fetch` directly is a bug.
+6. **Validate at boundaries.** Every request body/query is parsed with a Zod schema in the controller; every env var is declared in `env.ts`; API responses are typed via `shared/types.ts`.
+7. **Auth + ownership on every query.** All routers use `auth.requireAuth`; admin routes add `auth.requireRole('ADMIN')`. Every repository/service query filters by the requesting user's uid (`ownerId`). A query without an owner filter is a data-leak bug.
+8. **No comments** explaining *what* code does; only *why*, when non-obvious.
 
 ## Code style
 
-- TypeScript, strict; named exports only; `camelCase` files for TS modules, `kebab-case` for React components (`task-board.tsx` exports `TaskBoard`).
-- Commits: conventional commits (`feat(tasks): …`, `fix(auth): …`, `docs: …`, `refactor(tasks): …`).
-- No comments explaining *what* code does; only *why*, when non-obvious.
-- Secrets never enter code or git — env vars only, declared in the env modules listed in `ARCHITECTURE.md` §5.
-- Do not edit generated files (`package-lock.json`, `prisma/migrations/*` beyond creating new ones, shadcn `components/ui/*` except via its CLI).
+- Named exports only; `camelCase` TS files, `kebab-case.tsx` React components (`deal-board.tsx` exports `DealBoard`).
+- API envelope: success `{ data }`, errors `{ error: { code, message, details? } }`. Errors: `AppError` with HTTP status; Zod failures → 422 automatically.
+- Commits: conventional commits (`feat(deals): …`, `fix(auth): …`, `docs: …`, `refactor(tasks): …`).
+- Secrets never enter code or git — `.env` files are gitignored; update `.env.example` when adding vars.
+- Do not edit generated files (`package-lock.json`, `prisma/migrations/*` beyond creating new ones).
 
 ## Definition of done
 
-A task is done only when all of these hold:
-
-1. Code follows the architecture laws above (agent self-reviews against the checklist).
-2. `npm run lint` (and `typecheck` where it exists) passes in the touched workspace.
-3. Existing behavior still works — `backend` and `frontend` dev servers still boot.
-4. Tests: add/extend Vitest specs for new services/hooks; update fakes when repositories change.
+1. Code follows the architecture laws (self-review against the checklist in `SKILLS.md` → review).
+2. `npm run typecheck` and `npm run lint` pass in every touched workspace; `npm test` for backend changes.
+3. Existing behavior still works — both dev servers still boot (when env allows).
+4. Tests: add/extend Vitest specs for new services (fake repositories) and hooks; update fakes when repository interfaces change.
 5. Docs updated if architecture, env vars, or commands changed (README + ARCHITECTURE.md).
-6. Commit messages follow conventional commits; one logical change per commit; never commit secrets or lockfile noise unrelated to the change.
+6. Conventional commit; one logical change per commit; no secrets or lockfile noise.
 
 ## Known landmines (verify before assuming)
 
-- `backend/routes/taskRoutes.js` — `router.use(authMiddleware)` is commented out; task endpoints are currently unauthenticated. Any work in tasks must restore the guard.
-- `backend/server.js` defaults to port **3000** (README previously said 5000) and contains a leftover "Vooshfoods" greeting string — remove when touching that file.
-- `nodemon` is used by `npm start` but missing from backend devDependencies — add it on next backend change.
-- Frontend env var is `VITE_BACKEND_BASE_URL` (not `REACT_APP_API_URL`).
-- `frontend/src/components/TaskBoard .jsx` has a space in the filename; `public/fevicon.svg` is a typo — fix opportunistically when touching those files.
-- `react-beautiful-dnd` is unmaintained; target is `@hello-pangea/dnd` (drop-in fork).
-- Production JWT cookie bug is a known open issue (see BFF pattern in `ARCHITECTURE.md` §4.3 for the fix direction).
+- **Role changes need a token refresh.** `PATCH /users/:id/role` sets a Firebase custom claim + DB row; the affected user's authorization only updates after their next ID-token refresh (frontend refreshes on reload/re-login — tell users to re-login).
+- **`BOOTSTRAP_ADMIN_EMAILS` promotes on login only** — it can't demote; remove a user from the list and change their role in the admin UI instead.
+- **Seed ownership** — `npm run db:seed` assigns everything to `SEED_OWNER_UID` (placeholder default). Re-run it with your real UID or you'll see an empty CRM.
+- **Firebase private key escaping** — `FIREBASE_PRIVATE_KEY` must keep `\n` escapes; prefer the single-line `FIREBASE_SERVICE_ACCOUNT_KEY` JSON on Render/Heroku-style deploys.
+- **`FIREBASE_SERVICE_ACCOUNT_KEY` beats discrete vars** which beat `GOOGLE_APPLICATION_CREDENTIALS` (ADC). Exactly one mechanism is needed or every request 401s/500s at startup.
+- **Compound uniques** — Contact/Company/Deal/Task update/delete use `id_ownerId` compound keys (`@@unique([id, ownerId])` in schema). Preserve them; they enforce ownership at the DB layer.
+- **`deals/reorder` is registered before `deals/:id`** in the router — keep that order or `reorder` gets captured as an `:id`.
 
 ## Task workflow (all agents)
 

@@ -1,309 +1,142 @@
-# TaskForge — Architecture Blueprint
+# Ultra Tasker — Architecture
 
-This document is the single source of truth for TaskForge's architecture. It defines the **target architecture** (feature-based, ORM-backed, dependency-injected, fully TypeScript) and the migration path from the current codebase. AI agents and humans must follow these rules for every change.
-
----
-
-## 1. Principles
-
-| # | Principle | Meaning |
-|---|-----------|---------|
-| 1 | **Feature-based organization** | All code for a feature (tasks, auth) lives in one self-contained folder — in both backend and frontend. No shared "god folders" of unrelated code. |
-| 2 | **ORM for data access** | All database access goes through the ORM (Prisma) behind repositories. No raw queries in business logic, no Mongoose calls in controllers. |
-| 3 | **Dependency injection** | Services receive collaborators (repos, config, other services) via constructor injection. No direct instantiation, no hidden singletons. Keeps code testable and swappable. |
-| 4 | **TypeScript everywhere** | Strict mode, no `any`, no `@ts-ignore`. Types shared between layers via DTOs (backend) and schemas (frontend). |
-| 5 | **Data fetching is separate from UI** (frontend) | Three strict layers: `api/` = pure async functions (fetch + types), `hooks/` = React Query wrappers, `components/` = rendering only. A component never calls `fetch`/`axios` directly. |
-| 6 | **Validate at boundaries** | Zod/class-validator on every external input: request bodies, env vars, API responses. |
+Single source of truth for architecture decisions. Every PR is reviewed against these laws (see `AGENTS.md` for the agent-facing summary and `SKILLS.md` for task workflows).
 
 ---
 
-## 2. Current State → Target State
-
-| Concern | Current (legacy) | Target |
-|---------|------------------|--------|
-| Backend language | JavaScript (ESM) | TypeScript (strict) |
-| Backend framework | Express 4 | NestJS 10 (Express under the hood) |
-| Data access | Mongoose calls inside controllers | Prisma ORM + repository classes |
-| DI | None (module imports) | NestJS IoC container (constructor injection) |
-| Validation | Manual / none | Zod + class-validator DTOs |
-| Frontend framework | React 18 + Vite (SPA) | Next.js 14+ (App Router) |
-| Frontend language | JSX | TSX |
-| Data fetching | Axios inside `helper.js` hooks | `api/` pure functions + React Query hooks + BFF route handlers |
-| Styling | Tailwind + Flowbite | Tailwind + shadcn/ui |
-| DnD | react-beautiful-dnd (deprecated) | @hello-pangea/dnd (maintained fork) |
-| Tests | None | Vitest + Supertest (backend), Vitest + Testing Library (frontend) |
-
-> The `backend/` and `frontend/` folders currently hold the legacy app and are migrated in place, phase by phase (see §7). Do not mix legacy patterns into migrated code.
-
----
-
-## 3. Backend Target Architecture (NestJS + Prisma + DI)
-
-### 3.1 Layering
+## 1. System overview
 
 ```
-HTTP request
-  → Controller        (route + DTO validation + auth guards; NO business logic, NO DB)
-  → Service           (business logic, transactions; NO HTTP concepts)
-  → Repository        (Prisma queries only; returns domain types)
-  → Prisma ORM        (database)
+Browser (React + Vite TS SPA)
+  │  Firebase JS SDK ── email/password + Google sign-in
+  │  Authorization: Bearer <Firebase ID token>
+  ▼
+Express API (TypeScript)                     Firebase Auth (identity, custom claims)
+  ├─ helmet / CORS allow-list / rate limit
+  ├─ Zod validation (controllers)
+  ├─ Services (business logic, DI)
+  ├─ Repositories (Prisma only)
+  ▼
+PostgreSQL via Prisma ORM
 ```
 
-- A controller must never import Prisma or a repository.
-- A service must never touch `req`/`res` — it receives plain typed objects.
-- Repositories are the only files allowed to call Prisma.
+- **Identity** lives in Firebase; **authorization** (roles) is a Firebase custom claim mirrored to a `User` row.
+- **Data ownership**: every CRM row carries `ownerId`; all queries filter by it (law 7). The DB layer enforces it with `@@unique([id, ownerId])` compound keys.
+- **Admin**: users in `BOOTSTRAP_ADMIN_EMAILS` are promoted on first login; admins can change roles via `PATCH /users/:id/role` (sets claim + row).
 
-### 3.2 Folder structure (feature-based)
+## 2. Backend (`backend/`)
 
-```
-backend/
-├── prisma/
-│   ├── schema.prisma              # User, Task models
-│   └── migrations/
-├── src/
-│   ├── main.ts                    # bootstrap: helmet, CORS+credentials, cookie-parser, validation pipe
-│   ├── app.module.ts              # root module — registers feature modules
-│   ├── config/
-│   │   ├── env.ts                 # Zod-validated process.env (fails fast on boot)
-│   │   └── config.module.ts       # exposes typed ConfigService via DI
-│   ├── common/                    # cross-cutting, feature-agnostic
-│   │   ├── guards/                # JwtAuthGuard, RolesGuard
-│   │   ├── filters/               # global HttpExceptionFilter → { error: { code, message } }
-│   │   ├── interceptors/          # logging, transform
-│   │   ├── decorators/            # @CurrentUser()
-│   │   └── dto/                   # pagination.dto.ts etc.
-│   ├── database/
-│   │   ├── prisma.module.ts       # global module providing PrismaService
-│   │   └── prisma.service.ts      # extends PrismaClient, onModuleInit/onModuleDestroy
-│   └── features/                  # ← one folder per feature
-│       ├── auth/
-│       │   ├── auth.module.ts
-│       │   ├── auth.controller.ts
-│       │   ├── auth.service.ts
-│       │   ├── token.service.ts   # JWT sign/verify
-│       │   ├── google.strategy.ts # Google OAuth
-│       │   └── dto/               # signup.dto.ts, login.dto.ts
-│       ├── users/
-│       │   ├── users.module.ts
-│       │   ├── users.controller.ts
-│       │   ├── users.service.ts
-│       │   ├── user.repository.ts
-│       │   └── dto/
-│       └── tasks/
-│           ├── tasks.module.ts
-│           ├── tasks.controller.ts
-│           ├── tasks.service.ts
-│           ├── task.repository.ts
-│           └── dto/               # create-task.dto.ts, update-task.dto.ts, reorder-tasks.dto.ts
-└── test/
-    ├── tasks.e2e-spec.ts
-    └── auth.e2e-spec.ts
-```
-
-### 3.3 Dependency injection in practice
-
-```ts
-// features/tasks/tasks.module.ts
-@Module({
-  controllers: [TasksController],
-  providers: [TasksService, TaskRepository],
-  imports: [PrismaModule, JwtModule],
-})
-export class TasksModule {}
-
-// features/tasks/tasks.service.ts
-@Injectable()
-export class TasksService {
-  constructor(
-    private readonly tasks: TaskRepository,      // ← injected, mocked in tests
-    private readonly config: ConfigService,      // ← injected config, never process.env directly
-  ) {}
-
-  async reorder(userId: string, dto: ReorderTasksDto): Promise<Task[]> {
-    return this.tasks.updateOrder(userId, dto.taskIds); // transaction lives in the repo
-  }
-}
-
-// features/tasks/task.repository.ts
-@Injectable()
-export class TaskRepository {
-  constructor(private readonly prisma: PrismaService) {}   // ← injected
-
-  findMany(userId: string): Promise<Task[]> {
-    return this.prisma.task.findMany({ where: { userId }, orderBy: { order: 'asc' } });
-  }
-}
-```
-
-**Rules**
-- Register every provider in its feature module; never `new TasksService(...)`.
-- Config is read via injected `ConfigService` backed by Zod-validated env — never `process.env` outside `config/env.ts`.
-- Unit tests inject fakes: `const service = new TasksService(fakeRepo, fakeConfig);`
-
-### 3.4 DTOs and validation
-
-```ts
-// features/tasks/dto/create-task.dto.ts
-export class CreateTaskDto {
-  @IsString() @IsNotEmpty() title!: string;
-  @IsOptional() @IsString() description?: string;
-  @IsEnum(TaskStatus) status!: TaskStatus;       // TO_DO | IN_PROGRESS | DONE
-  @IsOptional() @IsUUID() assignedToId?: string;
-  @IsOptional() @IsDateString() dueDate?: string;
-}
-```
-
-Enable `ValidationPipe({ whitelist: true, transform: true })` globally in `main.ts`.
-
-### 3.5 API conventions
-
-- Base path: `/api/v1`
-- Responses: `{ data: T }` on success, `{ error: { code, message, details? } }` on failure
-- Auth: JWT in **HttpOnly, SameSite=Lax cookies** (set by `/auth/login`, `/auth/signup`, `/auth/google`); `JwtAuthGuard` on every protected route — including all task routes (fixes the legacy gap where auth was commented out).
-- Status codes: 200 read/update, 201 create, 204 delete, 401 unauthenticated, 403 forbidden, 404 not found, 422 validation.
-
----
-
-## 4. Frontend Target Architecture (Next.js App Router + TS)
-
-### 4.1 Folder structure (feature-based)
+### 2.1 Layering
 
 ```
-frontend/
-├── src/
-│   ├── app/                              # routing only — thin
-│   │   ├── layout.tsx                    # providers (QueryClient, Theme, Toaster)
-│   │   ├── (auth)/
-│   │   │   ├── login/page.tsx
-│   │   │   └── signup/page.tsx
-│   │   ├── (app)/
-│   │   │   ├── layout.tsx                # authenticated shell (Header, guard)
-│   │   │   └── board/page.tsx            # task board
-│   │   └── api/                          # BFF route handlers (server-only proxy)
-│   │       └── [...path]/route.ts        # forwards cookies to backend; never exposes BACKEND_URL
-│   ├── features/                         # ← one folder per feature
-│   │   ├── tasks/
-│   │   │   ├── api/
-│   │   │   │   └── task-api.ts           # pure async functions — NO React imports
-│   │   │   ├── hooks/
-│   │   │   │   ├── use-tasks.ts          # useQuery
-│   │   │   │   ├── use-create-task.ts    # useMutation + optimistic update
-│   │   │   │   └── use-reorder-tasks.ts
-│   │   │   ├── components/
-│   │   │   │   ├── task-board.tsx        # DnD board (client component)
-│   │   │   │   ├── task-column.tsx
-│   │   │   │   ├── task-card.tsx
-│   │   │   │   └── task-dialog.tsx
-│   │   │   └── model/
-│   │   │       ├── types.ts              # Task, TaskStatus
-│   │   │       └── schema.ts             # Zod schemas for create/update forms
-│   │   └── auth/
-│   │       ├── api/auth-api.ts
-│   │       ├── hooks/use-session.ts
-│   │       ├── components/google-oauth-button.tsx
-│   │       └── model/schema.ts
-│   ├── shared/                           # cross-feature, dumb building blocks
-│   │   ├── components/ui/                # shadcn/ui primitives (button, input, dialog…)
-│   │   ├── lib/                          # api-client.ts, query-client.ts, utils.ts
-│   │   └── hooks/
-│   └── middleware.ts                     # auth redirect (cookie presence check)
-├── .env.local                            # NEXT_PUBLIC_APP_URL (BFF is same-origin)
-└── next.config.ts
+router        route table + guards (auth.requireAuth, requireRole) — reorder-style static routes before /:id
+controller    thin: requireUser + Zod parse (body/query) + delegate + envelope response
+service       business logic (ownership checks, position math, FK ownership guards)
+repository    the only layer that touches Prisma
 ```
 
-### 4.2 Data fetching — the three-layer rule
+- Controllers never import Prisma; services never touch `req`/`res`.
+- Cross-feature ownership checks (e.g. "does this contact belong to me?") are done through the feature's own repository (`relationOwnedByOwner`) — services accept narrow collaborator interfaces, not other services.
 
-**Layer 1 — `api/` (pure functions, zero React):**
+### 2.2 Feature folder shape
 
-```ts
-// features/tasks/api/task-api.ts
-import { apiClient } from '@/shared/lib/api-client';
-import type { Task } from '../model/types';
-
-export async function getTasks(): Promise<Task[]> {
-  const res = await apiClient.get('/api/v1/tasks');
-  return taskSchema.array().parse(res.data.data);       // validate at boundary
-}
-
-export async function createTask(input: CreateTaskInput): Promise<Task> {
-  const res = await apiClient.post('/api/v1/tasks', input);
-  return taskSchema.parse(res.data.data);
-}
+```
+src/features/<name>/
+├── <name>.router.ts        # build<Name>Router(controller, authMiddleware)
+├── <name>.controller.ts    # class with asyncHandler methods
+├── <name>.service.ts       # class, collaborators via constructor
+├── <name>.repository.ts    # I<Name>Repository interface + Prisma implementation
+├── <name>.schemas.ts       # Zod: list query + create/update bodies
+└── <name>.service.spec.ts  # unit tests with fake repositories
 ```
 
-**Layer 2 — `hooks/` (React Query wrappers):**
+### 2.3 Dependency injection
 
-```ts
-// features/tasks/hooks/use-tasks.ts
-export function useTasks() {
-  return useQuery({ queryKey: taskKeys.all, queryFn: getTasks });
-}
+There is no DI framework. `src/container.ts` is the composition root: it instantiates Prisma, repositories, services, controllers, routers exactly once and hands routers to `app.ts`. `app.ts` and `main.ts` contain no feature logic.
 
-// features/tasks/hooks/use-create-task.ts
-export function useCreateTask() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: createTask,
-    onMutate: async (input) => { /* optimistic update + rollback */ },
-    onSettled: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
-  });
-}
+Rules:
+- Services declare constructor dependencies as repository **interfaces** (`IContactsRepository`), so unit tests pass in-memory fakes.
+- Only `container.ts` may `new` services/controllers.
+- `process.env` is read exclusively in `src/config/env.ts` (Zod-validated, fails fast at boot).
+
+### 2.4 Auth flow
+
+1. Client sends `Authorization: Bearer <Firebase ID token>`.
+2. `AuthMiddleware.requireAuth` verifies via `firebase-admin` `verifyIdToken`.
+3. `UsersService.ensureFromToken` upserts/refreshes the `User` row (1h in-memory cache per uid) and applies bootstrap-admin promotion.
+4. `req.user = { uid, email, role }`; `requireRole('ADMIN')` guards admin routes.
+5. Errors: 401 `UNAUTHENTICATED`, 403 `FORBIDDEN` — always the error envelope.
+
+### 2.5 Error handling
+
+`common/middleware/error.middleware.ts` is the single exit path:
+
+| Source | Status | Code |
+|--------|--------|------|
+| `AppError` | its `.status` | its `.code` |
+| Zod `ZodError` | 422 | `VALIDATION_ERROR` (+ field details) |
+| Prisma `P2025` | 404 | `NOT_FOUND` |
+| Prisma `P2002` | 409 | `CONFLICT` |
+| Prisma `P2003` | 422 | `INVALID_RELATION` |
+| anything else | 500 | `INTERNAL_ERROR` (logged, never leaked) |
+
+### 2.6 Domain model (Prisma)
+
+```
+User (id = Firebase UID, role)
+Company ──< Contact ──< Deal >── Company
+                └────< Task >────┘
 ```
 
-**Layer 3 — `components/` (rendering only):**
+- Enums: `Role`, `ContactStatus`, `DealStage` (NEW→QUALIFIED→PROPOSAL→NEGOTIATION→WON/LOST), `TaskStatus`, `TaskPriority`.
+- `Deal.position` (float) orders cards inside a stage; `POST /deals` appends at `max+1`; `PATCH /deals/reorder` writes batch updates in a transaction.
+- Relation deletes: owner cascade (`User`), `SetNull` for contact/company links (history survives).
 
-```tsx
-// features/tasks/components/task-board.tsx
-export function TaskBoard() {
-  const { data: tasks, isPending } = useTasks();   // hooks only — never fetch here
-  if (isPending) return <BoardSkeleton />;
-  return <DragDropContext onDragEnd={...}>{/* columns */}</DragDropContext>;
-}
+## 3. Frontend (`frontend/`)
+
+### 3.1 Folder shape
+
+```
+src/features/<name>/
+├── api/<name>-api.ts     # pure async functions, apiFetch, ZERO React imports
+├── hooks/                # React Query: query keys, optimistic updates, toasts
+├── components/           # presentational, consume hooks only
+└── model/schema.ts       # form Zod schemas
+src/shared/               # api-client, types.ts, format helpers, UI primitives
 ```
 
-**Hard rules**
-- `api/` files must not import React, hooks, or components.
-- `components/` must not import `api/` directly — only through `hooks/`.
-- Query keys live in one place per feature (`taskKeys` object in `hooks/use-tasks.ts`).
-- All mutations use optimistic updates with rollback (existing app behavior — keep it).
+### 3.2 Three-layer data rule (law 5)
 
-### 4.3 BFF pattern (route handlers)
+- `api/` functions own URL/typing concerns and parse the envelope via `shared/lib/api-client.ts` (`ApiError` on failures).
+- `hooks/` own query keys (`['deals', params]`), optimistic mutations with rollback (`useReorderDeals`), and cache invalidation (`['deals']`, `['dashboard']`).
+- `components/` never import `api/` directly.
 
-The browser talks **only** to same-origin Next.js route handlers (`/api/*`), which forward to the NestJS backend with the HttpOnly cookie attached. Benefits: no third-party-cookie/CORS issues in production, the backend URL stays server-side, and the production JWT cookie bug disappears.
+### 3.3 Auth on the client
 
----
+`firebase.ts` initializes the SDK from `VITE_FIREBASE_*` env. `AuthProvider` (features/auth) tracks the Firebase user, calls `POST /auth/session` once per login to sync the profile + role, and exposes `{ firebaseUser, profile, role, loading }`. `App.tsx` guards routes (`RequireAuth`, admin-only `/settings/users`).
 
-## 5. Environments
+## 4. Environments
 
-| Layer | Var | Purpose |
-|-------|-----|---------|
-| backend | `DATABASE_URL` | Postgres/MySQL connection for Prisma (Mongo during migration) |
-| backend | `JWT_SECRET`, `JWT_EXPIRES_IN` | token signing |
-| backend | `COOKIE_SECRET` | cookie signing |
-| backend | `FRONTEND_BASE_URL` | CORS allow-list |
-| backend | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth |
-| frontend | `NEXT_PUBLIC_APP_URL` | same-origin BFF base |
-| frontend (server-only) | `BACKEND_URL` | used by route handlers — never `NEXT_PUBLIC_` |
+Declared and validated in `backend/src/config/env.ts`; mirrored in `.env.example` files.
 
-Every variable must be declared in `backend/src/config/env.ts` / frontend env module with Zod — boot fails fast if missing.
+| Var | Where | Purpose |
+|-----|-------|---------|
+| `DATABASE_URL` | backend | Postgres (add `?sslmode=require` on Neon/Supabase) |
+| `CORS_ORIGIN` | backend | comma-separated browser origins |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | backend | single-line service-account JSON (preferred) |
+| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | backend | discrete alternative |
+| `BOOTSTRAP_ADMIN_EMAILS` | backend | emails promoted to ADMIN on login |
+| `SEED_OWNER_UID` | backend | seed data owner |
+| `RATE_LIMIT_MAX` | backend | requests / 15 min / IP |
+| `VITE_API_BASE_URL` | frontend | API base, default `http://localhost:4000/api/v1` |
+| `VITE_FIREBASE_*` | frontend | web-app config (public by design) |
 
----
+## 5. Testing strategy
 
-## 6. Testing strategy
+- **Backend unit (Vitest)**: services with fake repositories — ownership scoping, position math, FK guards. No DB required.
+- **Frontend**: typecheck + lint + build are the current gates; hook tests with `QueryClient` wrapper are the next step.
+- Contract safety: frontend types in `shared/types.ts` must stay in sync with Zod schemas — changing one without the other is a review blocker.
 
-- **Backend unit**: services with fake repositories (no DB).
-- **Backend e2e**: Supertest against the app with a test database (`npm run test:e2e`).
-- **Frontend unit**: Vitest + Testing Library — test hooks with `QueryClient` wrapper.
-- **Contract**: Zod schemas in `features/*/model` double as response validators; a change that breaks them is caught client-side in tests.
+## 6. Future work (proposals, not commitments)
 
----
-
-## 7. Migration plan (legacy → target)
-
-1. **Phase 0 — Harness (done):** AGENTS.md, SKILLS.md, ARCHITECTURE.md, README refresh; fix README/code env drift.
-2. **Phase 1 — Backend TS + DI:** introduce NestJS skeleton in `backend/src`, port `users` then `auth` (re-enable task-route auth guard), keep Mongoose behind repositories.
-3. **Phase 2 — Prisma:** introduce Prisma with Mongo connector (incremental), then evaluate Postgres switch; repositories are the only code touched.
-4. **Phase 3 — Frontend Next.js:** scaffold Next.js App Router, port `auth` feature, then `tasks` feature with the three-layer data fetching; add BFF route handlers; swap react-beautiful-dnd → @hello-pangea/dnd.
-5. **Phase 4 — Quality:** Vitest suites, CI (typecheck + lint + test), error envelopes, Playwright smoke test.
-
-Each phase ships behind working `npm run dev` at every commit. Never mix phases in one PR.
+CI pipeline, Playwright smoke tests, e2e Supertest suite against a throwaway Postgres, BFF/proxy deployment option, activity timeline, CSV import/export.

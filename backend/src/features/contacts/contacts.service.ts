@@ -1,5 +1,3 @@
-import type { ContactStatus } from '@prisma/client';
-import type { AuthUser } from '../../types/express';
 import { AppError } from '../../common/utils/app-error';
 import type { ContactWithCompany, IContactsRepository } from './contacts.repository';
 import type { CreateContactInput, ListContactsQuery, UpdateContactInput } from './contacts.schemas';
@@ -14,7 +12,7 @@ export class ContactsService {
     return this.repo.list({
       ownerId,
       search: query.search,
-      status: query.status as ContactStatus | undefined,
+      status: query.status,
       companyId: query.companyId,
       page: query.page,
       pageSize: query.pageSize
@@ -49,9 +47,5 @@ export class ContactsService {
     if (!companyId) return;
     const owned = await this.companies.companyOwnedByOwner(companyId, ownerId);
     if (!owned) throw AppError.notFound('Company');
-  }
-
-  whoami(user: AuthUser): string {
-    return user.email;
   }
 }

@@ -1,5 +1,7 @@
-import type { Prisma } from '@prisma/client';
+import type { Company, Prisma } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
+
+export type { Company };
 
 export interface ListCompaniesInput {
   ownerId: string;
@@ -17,11 +19,11 @@ export interface CreateCompanyInput {
 export type UpdateCompanyInput = Partial<CreateCompanyInput>;
 
 export interface ICompaniesRepository {
-  list(input: ListCompaniesInput): Promise<{ items: Prisma.CompanyGetPayload<{}>[]; total: number }>;
+  list(input: ListCompaniesInput): Promise<{ items: Company[]; total: number }>;
   findByIdAndOwner(id: string, ownerId: string): Promise<{ id: string; ownerId: string } | null>;
   companyOwnedByOwner(id: string, ownerId: string): Promise<boolean>;
-  create(ownerId: string, input: CreateCompanyInput): Promise<Prisma.CompanyGetPayload<{}>>;
-  update(id: string, ownerId: string, input: UpdateCompanyInput): Promise<Prisma.CompanyGetPayload<{}>>;
+  create(ownerId: string, input: CreateCompanyInput): Promise<Company>;
+  update(id: string, ownerId: string, input: UpdateCompanyInput): Promise<Company>;
   delete(id: string, ownerId: string): Promise<void>;
 }
 
@@ -40,7 +42,7 @@ export class CompaniesRepository implements ICompaniesRepository {
     return where;
   }
 
-  async list(input: ListCompaniesInput): Promise<{ items: Prisma.CompanyGetPayload<{}>[]; total: number }> {
+  async list(input: ListCompaniesInput): Promise<{ items: Company[]; total: number }> {
     const where = this.buildWhere(input);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.company.findMany({
@@ -90,4 +92,4 @@ export class CompaniesRepository implements ICompaniesRepository {
   }
 }
 
-export type Company = Prisma.CompanyGetPayload<{}>;
+

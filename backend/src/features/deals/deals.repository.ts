@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { DealStage, Prisma } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
 
 const dealInclude = { contact: true, company: true } as const;
@@ -7,7 +7,7 @@ export type DealWithRelations = Prisma.DealGetPayload<{ include: typeof dealIncl
 
 export interface ListDealsInput {
   ownerId: string;
-  stage?: string;
+  stage?: DealStage;
   contactId?: string;
   companyId?: string;
   search?: string;
@@ -52,7 +52,7 @@ export class DealsRepository implements IDealsRepository {
 
   private buildWhere(input: ListDealsInput): Prisma.DealWhereInput {
     const where: Prisma.DealWhereInput = { ownerId: input.ownerId };
-    if (input.stage) where.stage = input.stage as Prisma.EnumDealStageNullableFilter | DealStageValue;
+    if (input.stage) where.stage = input.stage;
     if (input.contactId) where.contactId = input.contactId;
     if (input.companyId) where.companyId = input.companyId;
     if (input.search) {
@@ -89,7 +89,7 @@ export class DealsRepository implements IDealsRepository {
   async maxPositionInStage(ownerId: string, stage: string): Promise<number> {
     const agg = await this.prisma.deal.aggregate({
       _max: { position: true },
-      where: { ownerId, stage: stage as DealStageValue }
+      where: { ownerId, stage: stage as DealStage }
     });
     return agg._max.position ?? 0;
   }
@@ -164,5 +164,3 @@ export class DealsRepository implements IDealsRepository {
     });
   }
 }
-
-type DealStageValue = 'NEW' | 'QUALIFIED' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST';

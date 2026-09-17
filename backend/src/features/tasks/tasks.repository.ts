@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, TaskStatus } from '@prisma/client';
 import type { PrismaService } from '../../database/prisma';
 
 const taskInclude = { contact: { select: { id: true, name: true } }, deal: { select: { id: true, title: true } } } as const;
@@ -7,7 +7,7 @@ export type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof taskIncl
 
 export interface ListTasksInput {
   ownerId: string;
-  status?: string;
+  status?: TaskStatus;
   contactId?: string;
   dealId?: string;
   page: number;
@@ -35,14 +35,12 @@ export interface ITasksRepository {
   delete(id: string, ownerId: string): Promise<void>;
 }
 
-type TaskStatusValue = 'TODO' | 'IN_PROGRESS' | 'DONE';
-
 export class TasksRepository implements ITasksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private buildWhere(input: ListTasksInput): Prisma.TaskWhereInput {
     const where: Prisma.TaskWhereInput = { ownerId: input.ownerId };
-    if (input.status) where.status = input.status as TaskStatusValue;
+    if (input.status) where.status = input.status;
     if (input.contactId) where.contactId = input.contactId;
     if (input.dealId) where.dealId = input.dealId;
     return where;

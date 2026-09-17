@@ -5,6 +5,10 @@ const OPEN_STAGES: DealStage[] = ['NEW', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION']
 const CONTACT_STATUSES: ContactStatus[] = ['LEAD', 'QUALIFIED', 'CUSTOMER', 'CHURNED'];
 const DEAL_STAGES: DealStage[] = ['NEW', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
 
+function countOf(count: boolean | { _all?: number } | undefined): number {
+  return typeof count === 'object' ? count._all ?? 0 : 0;
+}
+
 export interface DashboardStats {
   contacts: { total: number; byStatus: Record<ContactStatus, number> };
   deals: { total: number; byStage: Record<DealStage, number>; pipelineValue: number; wonValue: number };
@@ -18,9 +22,19 @@ export class DashboardService {
     const [contactTotal, contactGroups, dealTotal, dealGroups, pipelineAgg, wonAgg, taskTotal, taskOpen, taskOverdue] =
       await this.prisma.$transaction([
         this.prisma.contact.count({ where: { ownerId } }),
-        this.prisma.contact.groupBy({ by: ['status'], _count: { _all: true }, where: { ownerId } }),
+        this.prisma.contact.groupBy({
+          by: ['status'],
+          _count: { _all: true },
+          where: { ownerId },
+          orderBy: { status: 'asc' }
+        }),
         this.prisma.deal.count({ where: { ownerId } }),
-        this.prisma.deal.groupBy({ by: ['stage'], _count: { _all: true }, where: { ownerId } }),
+        this.prisma.deal.groupBy({
+          by: ['stage'],
+          _count: { _all: true },
+          where: { ownerId },
+          orderBy: { stage: 'asc' }
+        }),
         this.prisma.deal.aggregate({ _sum: { value: true }, where: { ownerId, stage: { in: OPEN_STAGES } } }),
         this.prisma.deal.aggregate({ _sum: { value: true }, where: { ownerId, stage: 'WON' } }),
         this.prisma.task.count({ where: { ownerId } }),
@@ -32,12 +46,12 @@ export class DashboardService {
 
     const byStatus = Object.fromEntries(CONTACT_STATUSES.map((status) => [status, 0])) as Record<ContactStatus, number>;
     for (const group of contactGroups) {
-      byStatus[group.status] = group._count._all;
+      byStatus[group.status] = countOf(group._count);
     }
 
     const byStage = Object.fromEntries(DEAL_STAGES.map((stage) => [stage, 0])) as Record<DealStage, number>;
     for (const group of dealGroups) {
-      byStage[group.stage] = group._count._all;
+      byStage[group.stage] = countOf(group._count);
     }
 
     return {
