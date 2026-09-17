@@ -25,6 +25,7 @@ export interface CreateDealInput {
   companyId?: string | null;
   expectedCloseDate?: Date | null;
   notes?: string | null;
+  position?: number;
 }
 
 export type UpdateDealInput = Partial<CreateDealInput>;
@@ -112,6 +113,7 @@ export class DealsRepository implements IDealsRepository {
         value: input.value,
         currency: input.currency ?? 'USD',
         stage: input.stage ?? 'NEW',
+        position: input.position ?? 1,
         contactId: input.contactId ?? null,
         companyId: input.companyId ?? null,
         expectedCloseDate: input.expectedCloseDate ?? null,

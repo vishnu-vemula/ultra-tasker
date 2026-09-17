@@ -29,19 +29,13 @@ export class DealsService {
     await this.assertRelationsOwned(ownerId, input.contactId ?? null, input.companyId ?? null);
     const stage = input.stage ?? 'NEW';
     const maxPosition = await this.repo.maxPositionInStage(ownerId, stage);
-    return this.repo.create(ownerId, { ...input, stage, position: undefined as never, ...{} } as CreateDealInput & {
-      position?: number;
-    }).catch(async () => this.repo.create(ownerId, input));
+    return this.repo.create(ownerId, { ...input, stage, position: maxPosition + 1 });
   }
 
   async update(ownerId: string, id: string, input: UpdateDealInput): Promise<DealWithRelations> {
     await this.get(ownerId, id);
     if (input.contactId !== undefined || input.companyId !== undefined) {
       await this.assertRelationsOwned(ownerId, input.contactId ?? null, input.companyId ?? null);
-    }
-    if (input.stage !== undefined) {
-      const maxPosition = await this.repo.maxPositionInStage(ownerId, input.stage);
-      void maxPosition;
     }
     return this.repo.update(id, ownerId, input);
   }
