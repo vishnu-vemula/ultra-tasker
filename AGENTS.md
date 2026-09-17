@@ -4,7 +4,7 @@ Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace,
 
 ## Project
 
-**Ultra Tasker** — a production-grade CRM (contacts, companies, deals pipeline, tasks, dashboard, user management) with Firebase auth, Prisma + PostgreSQL, and a fully TypeScript feature-based codebase.
+**Ultra Tasker** — a production-grade CRM (contacts, companies, deals pipeline with quote builder, tasks, activities, tags, notifications, audit trail, dashboard, global search, user management) with Firebase auth, Prisma + PostgreSQL, and a fully TypeScript feature-based codebase.
 
 - Stack: Express + TS backend, React + Vite + TS frontend, Firebase Authentication, Prisma ORM, React Query, Tailwind.
 - The old MERN task-manager code is gone; everything follows the target architecture described in `ARCHITECTURE.md`. There is no migration in flight — build new work on the existing patterns.
@@ -20,9 +20,10 @@ Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace,
 │   ├── prisma/          # schema.prisma, migrations, seed.ts
 │   └── src/
 │       ├── config/      # env.ts — the ONLY file reading process.env
-│       ├── common/      # middleware (auth, errors), utils (AppError, asyncHandler)
+│       ├── common/      # middleware (auth, errors), utils, audit/notification ports
 │       ├── database/    # prisma.ts, firebase.ts
-│       ├── features/    # one folder per feature
+│       ├── features/    # auth, users, contacts, companies, deals, tasks, tags,
+│       │                # products, activities, notifications, audit, search, dashboard
 │       ├── container.ts # DI composition root
 │       └── app.ts / main.ts
 └── frontend/
@@ -46,7 +47,7 @@ Running the app requires PostgreSQL and Firebase credentials (see README "Gettin
 
 ## Architecture laws (non-negotiable)
 
-1. **Feature-based organization.** Feature code goes in `backend/src/features/<name>/` or `frontend/src/features/<name>/`. Cross-cutting, feature-agnostic code goes in `common/` (backend) or `shared/` (frontend). If you're adding a second import from one feature into another, stop — extract to shared or reconsider.
+1. **Feature-based organization.** Feature code goes in `backend/src/features/<name>/` or `frontend/src/features/<name>/`. Cross-cutting, feature-agnostic code goes in `common/` (backend) or `shared/` (frontend). Cross-feature imports are sanctioned only for: route/page composition, the activities timeline components, `TagSelect`, the shared audit UI, and the ports in `common/utils` (`AuditLogger`, `NotificationDispatcher`, `TagsOwnershipChecker` via `TagsService`). Anything else: extract to shared or reconsider.
 2. **ORM only, behind repositories.** No Prisma calls in controllers or services. Only repository classes (and `DashboardService`, the one sanctioned aggregate) touch Prisma.
 3. **Dependency injection.** Services receive repositories/collaborators via constructor; everything is wired in `backend/src/container.ts`. Never `new` a service inside a class, never import a service singleton. Read `process.env` only in `backend/src/config/env.ts`.
 4. **TypeScript strict.** No `any`, no `@ts-ignore`, no non-null assertions unless provably safe. Backend types flow from Prisma models + Zod schemas; frontend types live in `shared/types.ts` and feature `model/` folders.
@@ -80,7 +81,10 @@ Running the app requires PostgreSQL and Firebase credentials (see README "Gettin
 - **Firebase private key escaping** — `FIREBASE_PRIVATE_KEY` must keep `\n` escapes; prefer the single-line `FIREBASE_SERVICE_ACCOUNT_KEY` JSON on Render/Heroku-style deploys.
 - **`FIREBASE_SERVICE_ACCOUNT_KEY` beats discrete vars** which beat `GOOGLE_APPLICATION_CREDENTIALS` (ADC). Exactly one mechanism is needed or every request 401s/500s at startup.
 - **Compound uniques** — Contact/Company/Deal/Task update/delete use `id_ownerId` compound keys (`@@unique([id, ownerId])` in schema). Preserve them; they enforce ownership at the DB layer.
-- **`deals/reorder` is registered before `deals/:id`** in the router — keep that order or `reorder` gets captured as an `:id`.
+- **`deals/reorder` is registered before `deals/:id`** in the router — keep that order or `reorder` gets captured as an `:id`. Same for **`contacts/export`, which must precede `contacts/:id`**.
+- **Deal items are nested routes** (`/deals/:id/items/:itemId`) and always go through `DealsService.get` first — ownership comes from the parent deal.
+- **Notifications are deduped by `dedupeKey`** (`task-overdue:<id>`, `deal-won:<id>`); overdue-task alerts are synced lazily when `GET /notifications` is called (there is no scheduler).
+- **Tags ownership** — attaching tags (`PATCH .../:id/tags`) validates every `tagId` belongs to the requester via `TagsService.assertAllOwned`; never connect tags directly in Prisma without it.
 
 ## Task workflow (all agents)
 

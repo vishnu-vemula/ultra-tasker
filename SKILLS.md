@@ -67,8 +67,8 @@ Architecture laws referenced as **L1–L8** (see AGENTS.md). Conventions and fol
 
 - [ ] Laws L1–L8 hold — especially: no Prisma outside repositories/container, no `new` of services outside `container.ts`, no `process.env` outside `config/env.ts`, no fetch in components, no Zod-less request bodies.
 - [ ] Every new query path filters by `ownerId`; compound uniques preserved.
-- [ ] Router order: static routes before `/:id`; auth guards present.
-- [ ] No `any`, `@ts-ignore`, non-null assertions, or comments.
+- [ ] Router order: static routes before `/:id` (`deals/reorder`, `contacts/export`); auth guards present.
+- [ ] Tag attachments go through `TagsService.assertAllOwned`; notifications use dedupe keys; mutations write audit rows.
 - [ ] Frontend cache keys consistent (`['<entity>', params]`) and mutations invalidate themselves + `['dashboard']` when stats change.
 - [ ] `.env.example` updated for new vars; no secrets in the diff.
 - [ ] Typecheck + lint + tests pass in touched workspaces.

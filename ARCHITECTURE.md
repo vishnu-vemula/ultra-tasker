@@ -59,6 +59,16 @@ Rules:
 - Only `container.ts` may `new` services/controllers.
 - `process.env` is read exclusively in `src/config/env.ts` (Zod-validated, fails fast at boot).
 
+### 2.4 Cross-cutting collaborators (ports)
+
+Side effects that span features are defined as interfaces in `common/utils` and injected like repositories:
+
+- `AuditLogger` (implemented by `AuditService`) — every mutation in contacts/companies/deals/tasks/activities/tags/products writes an audit row.
+- `NotificationDispatcher` (implemented by `NotificationsService`) — deals dispatch `DEAL_WON`; notifications sync overdue tasks lazily on `GET /notifications` (dedupe keys: `task-overdue:<id>`, `deal-won:<id>`).
+- `TagsOwnershipChecker` (implemented by `TagsService`) — tag attach endpoints validate every tag belongs to the requester.
+
+Sanctioned Prisma aggregates (no repository): `DashboardService` (stats) and `SearchService`'s repository lives in its feature; both are owner-scoped.
+
 ### 2.4 Auth flow
 
 1. Client sends `Authorization: Bearer <Firebase ID token>`.
@@ -84,12 +94,21 @@ Rules:
 
 ```
 User (id = Firebase UID, role)
-Company ──< Contact ──< Deal >── Company
-                └────< Task >────┘
+ ├── Company ──< Contact ──< Deal >── Company
+ │               │   └──< Task >──────┘
+ │               ├──< Activity (NOTE/CALL/EMAIL/MEETING; also on Deal/Company)
+ │               └──< Tag (M2M; also on Deal)
+ ├── Product ──< DealItem >── Deal
+ └── Notification (TASK_OVERDUE / DEAL_WON, deduped by ownerId+dedupeKey)
+
+AuditLog (action × entity per owner: CREATE/UPDATE/DELETE/STAGE_CHANGE)
 ```
 
-- Enums: `Role`, `ContactStatus`, `DealStage` (NEW→QUALIFIED→PROPOSAL→NEGOTIATION→WON/LOST), `TaskStatus`, `TaskPriority`.
-- `Deal.position` (float) orders cards inside a stage; `POST /deals` appends at `max+1`; `PATCH /deals/reorder` writes batch updates in a transaction.
+- Enums: `Role`, `ContactStatus`, `ContactSource`, `DealStage` (NEW→…→WON/LOST), `DealSource`, `TaskStatus`, `TaskPriority`, `ActivityType`, `NotificationType`, `AuditAction`, `EntityType`.
+- `Deal.position` orders cards inside a stage; `POST /deals` appends at `max+1`; `PATCH /deals/reorder` writes batch updates in a transaction.
+- **Stage business rules** (`DealsService.update`): stage change sets default probability (NEW 10 → NEGOTIATION 75, WON 100, LOST 0), stamps/clears `closedAt`, writes a `STAGE_CHANGE` audit row, and dispatches a deduped `DEAL_WON` notification on WON.
+- **Quote builder**: `DealItem` rows (product or free text) — any item mutation recalculates `deal.value = Σ(quantity × unitPrice)`.
+- **Activities**: create/update touches `contact.lastActivityAt` so lists can show recency.
 - Relation deletes: owner cascade (`User`), `SetNull` for contact/company links (history survives).
 
 ## 3. Frontend (`frontend/`)
