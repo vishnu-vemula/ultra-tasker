@@ -14,7 +14,12 @@ export class AuthMiddleware {
       if (!header?.startsWith('Bearer ')) {
         throw new AppError(401, 'UNAUTHENTICATED', 'Missing bearer token');
       }
-      const decoded = await firebaseAuth.verifyIdToken(header.slice(7));
+      let decoded: { uid: string; email?: string; name?: string; picture?: string };
+      try {
+        decoded = await firebaseAuth.verifyIdToken(header.slice(7));
+      } catch {
+        throw new AppError(401, 'UNAUTHENTICATED', 'Invalid or expired token');
+      }
       const user = await this.users.ensureFromToken({
         uid: decoded.uid,
         email: decoded.email,
