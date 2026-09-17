@@ -128,7 +128,8 @@ Sign up in the app with an email listed in `BOOTSTRAP_ADMIN_EMAILS` — you'll g
 | `npm run build` / `npm start` | `backend` | Compile / run production build |
 | `npm run typecheck` | both | `tsc --noEmit` |
 | `npm run lint` | both | ESLint |
-| `npm test` | `backend` | Vitest unit tests |
+| `npm test` | `backend` | Vitest unit tests (no DB needed) |
+| `npm run test:e2e` | `backend` | End-to-end API tests — needs a scratch Postgres: `docker run -d --name ultra-tasker-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ultra_tasker -p 5434:5432 postgres:16-alpine` then `npx prisma migrate dev` |
 | `npx prisma migrate dev` | `backend` | Apply schema changes |
 | `npm run db:seed` | `backend` | Demo data |
 | `npm run db:studio` | `backend` | Prisma Studio |
