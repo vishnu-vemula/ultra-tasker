@@ -7,6 +7,7 @@ export interface AuthContextValue {
   profile: User | null
   role: Role | null
   loading: boolean
+  configError: string | null
   signOut: () => Promise<void>
 }
 

@@ -5,16 +5,25 @@ import { Zap } from 'lucide-react'
 import { useAuth } from '../use-auth'
 import { LoginForm } from './login-form'
 import { GoogleButton } from './google-button'
+import { FirebaseSetupNotice } from './firebase-setup-notice'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card'
 import { Separator } from '../../../shared/components/ui/separator'
 
 export function LoginPage() {
-  const { firebaseUser, loading } = useAuth()
+  const { firebaseUser, loading, configError } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && firebaseUser) router.replace('/')
   }, [firebaseUser, loading, router])
+
+  if (configError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <FirebaseSetupNotice error={configError} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

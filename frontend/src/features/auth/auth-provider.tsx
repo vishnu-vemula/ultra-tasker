@@ -13,9 +13,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [configError, setConfigError] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (user) => {
+    let auth
+    try {
+      auth = getFirebaseAuth()
+    } catch (error) {
+      setConfigError(error instanceof Error ? error.message : 'Firebase failed to initialize')
+      setLoading(false)
+      return
+    }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user)
       if (user) {
         try {
@@ -38,11 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       role: profile?.role ?? null,
       loading,
+      configError,
       signOut: async () => {
         await firebaseSignOut(getFirebaseAuth())
       },
     }),
-    [firebaseUser, profile, loading],
+    [firebaseUser, profile, loading, configError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
