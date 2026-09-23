@@ -10,6 +10,17 @@ import { DescriptionList } from '../../../shared/components/description-list'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { StatusBadge } from '../../../shared/components/status-badge'
 import { AuditSection } from '../../../shared/components/audit-section'
+import { Badge } from '../../../shared/components/ui/badge'
+import { Button } from '../../../shared/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatDate, formatCurrency, titleCase } from '../../../shared/lib/format'
 import { ActivityTimeline } from '../../activities/components/activity-timeline'
 import { ActivityDialog } from '../../activities/components/activity-dialog'
@@ -53,160 +64,182 @@ export function ContactDetailPage() {
         subtitle={contact.position ? `${contact.position}${contact.company ? ` at ${contact.company.name}` : ''}` : contact.company?.name ?? undefined}
         actions={
           <>
-            <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
               <Plus className="h-4 w-4" />
               Log activity
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setEditOpen(true)}>
+            </Button>
+            <Button type="button" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
               Edit contact
-            </button>
+            </Button>
           </>
         }
       />
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Profile</h2>
-        <DescriptionList
-          items={[
-            { label: 'Email', value: contact.email ?? '—' },
-            { label: 'Phone', value: contact.phone ?? '—' },
-            { label: 'Status', value: <StatusBadge variant={contact.status} /> },
-            {
-              label: 'Company',
-              value:
-                contact.company && contact.companyId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/companies/${contact.companyId}`}>
-                    {contact.company.name}
-                  </Link>
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DescriptionList
+            items={[
+              { label: 'Email', value: contact.email ?? '—' },
+              { label: 'Phone', value: contact.phone ?? '—' },
+              { label: 'Status', value: <StatusBadge variant={contact.status} /> },
+              {
+                label: 'Company',
+                value:
+                  contact.company && contact.companyId ? (
+                    <Link className="text-primary hover:text-primary/80" href={`/companies/${contact.companyId}`}>
+                      {contact.company.name}
+                    </Link>
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                label: 'Website',
+                value: contact.website ? (
+                  <a className="text-primary hover:text-primary/80" href={contact.website} target="_blank" rel="noreferrer">
+                    {contact.website}
+                  </a>
                 ) : (
                   '—'
                 ),
-            },
-            {
-              label: 'Website',
-              value: contact.website ? (
-                <a className="text-indigo-600 hover:text-indigo-700" href={contact.website} target="_blank" rel="noreferrer">
-                  {contact.website}
-                </a>
+              },
+              { label: 'Source', value: contact.source ? titleCase(contact.source) : '—' },
+              { label: 'City', value: contact.city ?? '—' },
+              { label: 'Country', value: contact.country ?? '—' },
+              { label: 'Last activity', value: formatDate(contact.lastActivityAt) },
+              { label: 'Created', value: formatDate(contact.createdAt) },
+              { label: 'Notes', value: contact.notes ?? '—' },
+            ]}
+          />
+          <div className="mt-6 border-t pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">Tags</span>
+              {editingTags ? (
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setEditingTags(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={setTagsMutation.isPending}
+                    onClick={() => void saveTags()}
+                  >
+                    Save tags
+                  </Button>
+                </div>
               ) : (
-                '—'
-              ),
-            },
-            { label: 'Source', value: contact.source ? titleCase(contact.source) : '—' },
-            { label: 'City', value: contact.city ?? '—' },
-            { label: 'Country', value: contact.country ?? '—' },
-            { label: 'Last activity', value: formatDate(contact.lastActivityAt) },
-            { label: 'Created', value: formatDate(contact.createdAt) },
-            { label: 'Notes', value: contact.notes ?? '—' },
-          ]}
-        />
-        <div className="mt-6 border-t border-slate-100 pt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tags</span>
+                <button type="button" className="text-xs font-medium text-primary hover:text-primary/80" onClick={startEditTags}>
+                  Edit tags
+                </button>
+              )}
+            </div>
             {editingTags ? (
-              <div className="flex gap-2">
-                <button type="button" className="btn-secondary px-2.5 py-1 text-xs" onClick={() => setEditingTags(false)}>
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary px-2.5 py-1 text-xs"
-                  disabled={setTagsMutation.isPending}
-                  onClick={() => void saveTags()}
-                >
-                  Save tags
-                </button>
+              <TagSelect value={draftTagIds} onChange={setDraftTagIds} />
+            ) : contact.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {contact.tags.map((tag) => (
+                  <Badge key={tag.id} variant="muted" className="gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
             ) : (
-              <button type="button" className="text-xs font-medium text-indigo-600 hover:text-indigo-700" onClick={startEditTags}>
-                Edit tags
-              </button>
+              <p className="text-sm text-muted-foreground">No tags.</p>
             )}
           </div>
-          {editingTags ? (
-            <TagSelect value={draftTagIds} onChange={setDraftTagIds} />
-          ) : contact.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {contact.tags.map((tag) => (
-                <span key={tag.id} className="badge items-center gap-1.5 bg-slate-100 text-slate-700">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
-                  {tag.name}
-                </span>
-              ))}
-            </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Deals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {contact.deals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No deals for this contact yet.</p>
           ) : (
-            <p className="text-sm text-slate-500">No tags.</p>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Title</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Value</TableHead>
+                  <TableHead>Expected close</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contact.deals.map((deal) => (
+                  <TableRow
+                    key={deal.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/deals/${deal.id}`)}
+                  >
+                    <TableCell>
+                      <span className="font-medium text-foreground">{deal.title}</span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge variant={deal.stage} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatCurrency(deal.value, deal.currency)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(deal.expectedCloseDate)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Deals</h2>
-        {contact.deals.length === 0 ? (
-          <p className="text-sm text-slate-500">No deals for this contact yet.</p>
-        ) : (
-          <table className="w-full">
-            <thead className="border-b border-slate-200">
-              <tr>
-                <th className="th">Title</th>
-                <th className="th">Stage</th>
-                <th className="th">Value</th>
-                <th className="th">Expected close</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {contact.deals.map((deal) => (
-                <tr
-                  key={deal.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => router.push(`/deals/${deal.id}`)}
-                >
-                  <td className="td font-medium text-slate-900">{deal.title}</td>
-                  <td className="td">
-                    <StatusBadge variant={deal.stage} />
-                  </td>
-                  <td className="td">{formatCurrency(deal.value, deal.currency)}</td>
-                  <td className="td">{formatDate(deal.expectedCloseDate)}</td>
-                </tr>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {contact.tasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tasks for this contact yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {contact.tasks.map((task) => (
+                <li key={task.id} className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">Due {formatDate(task.dueDate)}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {task.priority ? <StatusBadge variant={task.priority} /> : null}
+                    <StatusBadge variant={task.status} />
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Tasks</h2>
-        {contact.tasks.length === 0 ? (
-          <p className="text-sm text-slate-500">No tasks for this contact yet.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {contact.tasks.map((task) => (
-              <li key={task.id} className="flex items-center justify-between gap-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{task.title}</p>
-                  <p className="text-xs text-slate-500">Due {formatDate(task.dueDate)}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {task.priority ? <StatusBadge variant={task.priority} /> : null}
-                  <StatusBadge variant={task.status} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Activity</h2>
-          <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Log activity
-          </button>
-        </div>
-        <ActivityTimeline activities={contact.activities} />
-      </section>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Activity</CardTitle>
+            <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Log activity
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ActivityTimeline activities={contact.activities} />
+        </CardContent>
+      </Card>
 
       <AuditSection entityType="CONTACT" entityId={contact.id} />
 

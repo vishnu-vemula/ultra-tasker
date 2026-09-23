@@ -5,6 +5,8 @@ import { Zap } from 'lucide-react'
 import { useAuth } from '../use-auth'
 import { SignupForm } from './signup-form'
 import { GoogleButton } from './google-button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card'
+import { Separator } from '../../../shared/components/ui/separator'
 
 export function SignupPage() {
   const { firebaseUser, loading } = useAuth()
@@ -15,29 +17,31 @@ export function SignupPage() {
   }, [firebaseUser, loading, router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="card w-full max-w-md p-8">
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-lg shadow-slate-200/50">
+        <CardHeader className="items-center pb-0">
+          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25">
             <Zap className="h-7 w-7 text-white" />
           </span>
-          <h1 className="text-xl font-semibold text-slate-900">Create your account</h1>
-          <p className="text-sm text-slate-500">Get started with Ultra Tasker</p>
-        </div>
-        <SignupForm />
-        <div className="my-5 flex items-center gap-3">
-          <span className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs uppercase tracking-wide text-slate-400">or</span>
-          <span className="h-px flex-1 bg-slate-200" />
-        </div>
-        <GoogleButton />
-        <p className="mt-6 text-center text-sm text-slate-500">
-          Already have an account?{' '}
-          <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
-            Sign in
-          </Link>
-        </p>
-      </div>
+          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardDescription>Get started with Ultra Tasker</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <SignupForm />
+          <div className="my-5 flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs uppercase tracking-wider text-muted-foreground/70">or</span>
+            <Separator className="flex-1" />
+          </div>
+          <GoogleButton />
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

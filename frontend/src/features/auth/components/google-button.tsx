@@ -3,6 +3,7 @@ import { signInWithPopup } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
 import { getFirebaseAuth, googleProvider } from '../../../shared/lib/firebase'
+import { Button } from '../../../shared/components/ui/button'
 
 export function GoogleButton() {
   const [submitting, setSubmitting] = useState(false)
@@ -20,7 +21,13 @@ export function GoogleButton() {
   }
 
   return (
-    <button type="button" className="btn-secondary w-full" onClick={handleSignIn} disabled={submitting}>
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full"
+      onClick={handleSignIn}
+      disabled={submitting}
+    >
       <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
         <path
           fill="#4285F4"
@@ -40,6 +47,6 @@ export function GoogleButton() {
         />
       </svg>
       Continue with Google
-    </button>
+    </Button>
   )
 }

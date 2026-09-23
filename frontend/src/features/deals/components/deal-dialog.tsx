@@ -1,8 +1,20 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import { Textarea } from '../../../shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
 import { CURRENCIES, DEAL_SOURCES, DEAL_STAGES, type Deal, type DealStage } from '../../../shared/types'
 import { dealFormSchema, type DealFormValues } from '../model/schema'
 import {
@@ -70,6 +82,7 @@ export function DealDialog({ deal, defaultStage, onClose }: DealDialogProps) {
   const {
     register,
     handleSubmit,
+    control,
     watch,
     formState: { errors },
   } = useForm<DealFormValues>({
@@ -114,138 +127,179 @@ export function DealDialog({ deal, defaultStage, onClose }: DealDialogProps) {
   return (
     <Dialog title={deal ? 'Edit deal' : 'New deal'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="deal-title" className="label">
-            Title
-          </label>
-          <input id="deal-title" type="text" className="input" {...register('title')} />
-          {errors.title ? <p className="mt-1 text-sm text-red-600">{errors.title.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="deal-title">Title</Label>
+          <Input id="deal-title" type="text" {...register('title')} />
+          {errors.title ? <p className="text-sm text-destructive">{errors.title.message}</p> : null}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="deal-value" className="label">
-              Value
-            </label>
-            <input id="deal-value" type="number" min="0" step="any" className="input" {...register('value')} />
-            {errors.value ? <p className="mt-1 text-sm text-red-600">{errors.value.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="deal-value">Value</Label>
+            <Input id="deal-value" type="number" min="0" step="any" {...register('value')} />
+            {errors.value ? <p className="text-sm text-destructive">{errors.value.message}</p> : null}
           </div>
-          <div>
-            <label htmlFor="deal-currency" className="label">
-              Currency
-            </label>
-            <select id="deal-currency" className="select" {...register('currency')}>
-              {CURRENCIES.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Currency</Label>
+            <Controller
+              control={control}
+              name="currency"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency} value={currency}>
+                        {currency}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="deal-stage" className="label">
-              Stage
-            </label>
-            <select id="deal-stage" className="select" {...register('stage')}>
-              {DEAL_STAGES.map((value) => (
-                <option key={value} value={value}>
-                  {value.charAt(0) + value.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Stage</Label>
+            <Controller
+              control={control}
+              name="stage"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_STAGES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value.charAt(0) + value.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-          <div>
-            <label htmlFor="deal-probability" className="label">
-              Probability (%)
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="deal-probability">Probability (%)</Label>
+            <Input
               id="deal-probability"
               type="number"
               min="0"
               max="100"
               step="1"
-              className="input"
               {...register('probability')}
             />
-            {errors.probability ? <p className="mt-1 text-sm text-red-600">{errors.probability.message}</p> : null}
+            {errors.probability ? (
+              <p className="text-sm text-destructive">{errors.probability.message}</p>
+            ) : null}
           </div>
         </div>
         {stage === 'LOST' ? (
-          <div>
-            <label htmlFor="deal-lost-reason" className="label">
-              Lost reason
-            </label>
-            <textarea id="deal-lost-reason" rows={2} className="input" {...register('lostReason')} />
+          <div className="space-y-2">
+            <Label htmlFor="deal-lost-reason">Lost reason</Label>
+            <Textarea id="deal-lost-reason" rows={2} {...register('lostReason')} />
           </div>
         ) : null}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="deal-source" className="label">
-              Source
-            </label>
-            <select id="deal-source" className="select" {...register('source')}>
-              <option value="">No source</option>
-              {DEAL_SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {source.charAt(0) + source.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Source</Label>
+            <Controller
+              control={control}
+              name="source"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No source</SelectItem>
+                    {DEAL_SOURCES.map((source) => (
+                      <SelectItem key={source} value={source}>
+                        {source.charAt(0) + source.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-          <div>
-            <label htmlFor="deal-next-step" className="label">
-              Next step
-            </label>
-            <input id="deal-next-step" type="text" className="input" {...register('nextStep')} />
+          <div className="space-y-2">
+            <Label htmlFor="deal-next-step">Next step</Label>
+            <Input id="deal-next-step" type="text" {...register('nextStep')} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="deal-contact" className="label">
-              Contact
-            </label>
-            <select id="deal-contact" className="select" {...register('contactId')}>
-              <option value="">No contact</option>
-              {(contactPage?.items ?? []).map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Contact</Label>
+            <Controller
+              control={control}
+              name="contactId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No contact</SelectItem>
+                    {(contactPage?.items ?? []).map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-          <div>
-            <label htmlFor="deal-company" className="label">
-              Company
-            </label>
-            <select id="deal-company" className="select" {...register('companyId')}>
-              <option value="">No company</option>
-              {(companyPage?.items ?? []).map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Company</Label>
+            <Controller
+              control={control}
+              name="companyId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No company</SelectItem>
+                    {(companyPage?.items ?? []).map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
-        <div>
-          <label htmlFor="deal-close-date" className="label">
-            Expected close date
-          </label>
-          <input id="deal-close-date" type="date" className="input" {...register('expectedCloseDate')} />
+        <div className="space-y-2">
+          <Label htmlFor="deal-close-date">Expected close date</Label>
+          <Input id="deal-close-date" type="date" {...register('expectedCloseDate')} />
           {errors.expectedCloseDate ? (
-            <p className="mt-1 text-sm text-red-600">{errors.expectedCloseDate.message}</p>
+            <p className="text-sm text-destructive">{errors.expectedCloseDate.message}</p>
           ) : null}
         </div>
-        <div>
-          <span className="label">Tags</span>
+        <div className="space-y-2">
+          <Label>Tags</Label>
           <TagSelect value={tagIds} onChange={setTagIds} />
         </div>
-        <div>
-          <label htmlFor="deal-notes" className="label">
-            Notes
-          </label>
-          <textarea id="deal-notes" rows={3} className="input" {...register('notes')} />
+        <div className="space-y-2">
+          <Label htmlFor="deal-notes">Notes</Label>
+          <Textarea id="deal-notes" rows={3} {...register('notes')} />
         </div>
         <div className="flex items-center justify-between gap-2 pt-2">
           {deal ? (
@@ -260,12 +314,13 @@ export function DealDialog({ deal, defaultStage, onClose }: DealDialogProps) {
             <span />
           )}
           <div className="flex gap-2">
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button type="submit" className="btn-primary" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {submitting ? 'Saving…' : 'Save deal'}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

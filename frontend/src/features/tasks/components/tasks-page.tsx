@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CheckSquare, Plus, Square } from 'lucide-react'
+import { CheckSquare, ChevronLeft, ChevronRight, Plus, Square } from 'lucide-react'
 import clsx from 'clsx'
 import { useTasks } from '../hooks/use-tasks'
 import { useDeleteTask, useToggleTaskStatus } from '../hooks/use-task-mutations'
@@ -7,7 +7,25 @@ import { TaskDialog } from './task-dialog'
 import { PageHeader } from '../../../shared/components/page-header'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { SkeletonList } from '../../../shared/components/skeleton'
+import { EmptyState } from '../../../shared/components/empty-state'
 import { StatusBadge } from '../../../shared/components/status-badge'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatDate } from '../../../shared/lib/format'
 import { TASK_STATUSES, type Task, type TaskStatus } from '../../../shared/types'
 
@@ -55,71 +73,78 @@ export function TasksPage() {
         title="Tasks"
         description="Stay on top of your follow-ups"
         action={
-          <button type="button" className="btn-primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             New task
-          </button>
+          </Button>
         }
       />
       <div className="mb-4">
-        <select
-          className="select w-44"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value as TaskStatus | '')
+        <Select
+          value={status || 'ALL'}
+          onValueChange={(value) => {
+            setStatus(value === 'ALL' ? '' : (value as TaskStatus))
             setPage(1)
           }}
         >
-          <option value="">All statuses</option>
-          {TASK_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {value
-                .split('_')
-                .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-                .join(' ')}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All statuses</SelectItem>
+            {TASK_STATUSES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value
+                  .split('_')
+                  .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+                  .join(' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
         <SkeletonList count={5} />
       ) : !data || data.items.length === 0 ? (
-        <div className="card flex flex-col items-center gap-3 p-12 text-center">
-          <CheckSquare className="h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">No tasks yet. Add your first task to get started.</p>
-          <button type="button" className="btn-primary" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            New task
-          </button>
-        </div>
+        <EmptyState
+          icon={CheckSquare}
+          title="No tasks yet"
+          description="Add your first task to get started."
+          action={
+            <Button type="button" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New task
+            </Button>
+          }
+        />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th w-12" />
-                <th className="th">Title</th>
-                <th className="th">Status</th>
-                <th className="th">Priority</th>
-                <th className="th">Due date</th>
-                <th className="th">Contact</th>
-                <th className="th">Deal</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12" />
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Due date</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Deal</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.items.map((task) => (
-                <tr
+                <TableRow
                   key={task.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  className="cursor-pointer"
                   onClick={() => openEdit(task)}
                 >
-                  <td className="td">
+                  <TableCell>
                     <button
                       type="button"
                       aria-label={task.status === 'DONE' ? 'Mark as to do' : 'Mark as done'}
-                      className="text-slate-400 transition-colors hover:text-indigo-600"
+                      className="text-muted-foreground/70 transition-colors hover:text-primary"
                       onClick={(event) => {
                         event.stopPropagation()
                         toggleMutation.mutate({
@@ -134,56 +159,67 @@ export function TasksPage() {
                         <Square className="h-5 w-5" />
                       )}
                     </button>
-                  </td>
-                  <td className={clsx('td font-medium text-slate-900', task.status === 'DONE' && 'line-through')}>
-                    {task.title}
-                  </td>
-                  <td className="td">
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={clsx(
+                        'font-medium text-foreground',
+                        task.status === 'DONE' && 'line-through',
+                      )}
+                    >
+                      {task.title}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <StatusBadge variant={task.status} />
-                  </td>
-                  <td className="td">
+                  </TableCell>
+                  <TableCell>
                     {task.priority ? <StatusBadge variant={task.priority} /> : '—'}
-                  </td>
-                  <td className={clsx('td', isOverdue(task) && 'font-medium text-red-600')}>
+                  </TableCell>
+                  <TableCell className={clsx(isOverdue(task) && 'font-medium text-destructive')}>
                     {formatDate(task.dueDate)}
                     {isOverdue(task) ? ' (overdue)' : ''}
-                  </td>
-                  <td className="td">{task.contact?.name ?? '—'}</td>
-                  <td className="td">{task.deal?.title ?? '—'}</td>
-                  <td className="td text-right">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{task.contact?.name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{task.deal?.title ?? '—'}</TableCell>
+                  <TableCell className="text-right">
                     <ConfirmButton onConfirm={() => deleteMutation.mutate(task.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-            <p className="text-sm text-slate-500">
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <p className="text-sm text-muted-foreground">
               {total} task{total === 1 ? '' : 's'}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canPrev}
                 onClick={() => setPage((current) => current - 1)}
               >
+                <ChevronLeft className="h-4 w-4" />
                 Previous
-              </button>
-              <span className="text-sm text-slate-500">
+              </Button>
+              <span className="text-sm text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canNext}
                 onClick={() => setPage((current) => current + 1)}
               >
                 Next
-              </button>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
       {dialogOpen ? <TaskDialog task={editing} onClose={() => setDialogOpen(false)} /> : null}
     </div>

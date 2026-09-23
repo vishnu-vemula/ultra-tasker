@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, Plus, Search, UserPlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Plus, Search, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useContacts } from '../hooks/use-contacts'
 import { useDeleteContact } from '../hooks/use-contact-mutations'
@@ -10,9 +10,28 @@ import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { EmptyState } from '../../../shared/components/empty-state'
 import { StatusBadge } from '../../../shared/components/status-badge'
+import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
+import { Input } from '../../../shared/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { apiDownload } from '../../../shared/lib/api-client'
-import { formatDate } from '../../../shared/lib/format'
+import { formatDate, titleCase } from '../../../shared/lib/format'
 import { CONTACT_STATUSES, type ContactStatus } from '../../../shared/types'
 
 function initials(name: string): string {
@@ -64,24 +83,24 @@ export function ContactsPage() {
         description="Manage the people in your pipeline"
         action={
           <div className="flex gap-2">
-            <button type="button" className="btn-secondary" onClick={() => void exportCsv()}>
+            <Button type="button" variant="outline" onClick={() => void exportCsv()}>
               <Download className="h-4 w-4" />
               Export CSV
-            </button>
-            <button type="button" className="btn-primary" onClick={openCreate}>
+            </Button>
+            <Button type="button" onClick={openCreate}>
               <Plus className="h-4 w-4" />
               New contact
-            </button>
+            </Button>
           </div>
         }
       />
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="search"
             placeholder="Search contacts…"
-            className="input pl-9"
+            className="pl-9"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value)
@@ -89,21 +108,25 @@ export function ContactsPage() {
             }}
           />
         </div>
-        <select
-          className="select w-44"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value as ContactStatus | '')
+        <Select
+          value={status || 'ALL'}
+          onValueChange={(value) => {
+            setStatus(value === 'ALL' ? '' : (value as ContactStatus))
             setPage(1)
           }}
         >
-          <option value="">All statuses</option>
-          {CONTACT_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {value.charAt(0) + value.slice(1).toLowerCase()}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All statuses</SelectItem>
+            {CONTACT_STATUSES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {titleCase(value)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -114,82 +137,92 @@ export function ContactsPage() {
           title="No contacts yet"
           description="Add your first contact to get started."
           action={
-            <button type="button" className="btn-primary" onClick={openCreate}>
+            <Button type="button" onClick={openCreate}>
               <Plus className="h-4 w-4" />
               New contact
-            </button>
+            </Button>
           }
         />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Name</th>
-                <th className="th">Email</th>
-                <th className="th">Phone</th>
-                <th className="th">Company</th>
-                <th className="th">Status</th>
-                <th className="th">Created</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.items.map((contact) => (
-                <tr
+                <TableRow
                   key={contact.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  className="cursor-pointer"
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
-                  <td className="td">
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
-                        {initials(contact.name)}
-                      </span>
-                      <span className="font-medium text-slate-900">{contact.name}</span>
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="text-xs">
+                          {initials(contact.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-foreground">{contact.name}</span>
                     </div>
-                  </td>
-                  <td className="td">{contact.email ?? '—'}</td>
-                  <td className="td">{contact.phone ?? '—'}</td>
-                  <td className="td">{contact.company?.name ?? '—'}</td>
-                  <td className="td">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{contact.email ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{contact.phone ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {contact.company?.name ?? '—'}
+                  </TableCell>
+                  <TableCell>
                     <StatusBadge variant={contact.status} />
-                  </td>
-                  <td className="td">{formatDate(contact.createdAt)}</td>
-                  <td className="td text-right">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(contact.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
                     <ConfirmButton onConfirm={() => deleteMutation.mutate(contact.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-            <p className="text-sm text-slate-500">
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <p className="text-sm text-muted-foreground">
               {total} contact{total === 1 ? '' : 's'}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canPrev}
                 onClick={() => setPage((current) => current - 1)}
               >
+                <ChevronLeft className="h-4 w-4" />
                 Previous
-              </button>
-              <span className="text-sm text-slate-500">
+              </Button>
+              <span className="text-sm text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canNext}
                 onClick={() => setPage((current) => current + 1)}
               >
                 Next
-              </button>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
       {dialogOpen ? <ContactDialog contact={null} onClose={() => setDialogOpen(false)} /> : null}
     </div>

@@ -8,6 +8,16 @@ import { DescriptionList } from '../../../shared/components/description-list'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { StatusBadge } from '../../../shared/components/status-badge'
 import { AuditSection } from '../../../shared/components/audit-section'
+import { Button } from '../../../shared/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatCurrency, formatDate } from '../../../shared/lib/format'
 import { useActivities } from '../../activities/hooks/use-activities'
 import { ActivityTimeline } from '../../activities/components/activity-timeline'
@@ -39,116 +49,142 @@ export function CompanyDetailPage() {
         subtitle={company.industry ?? undefined}
         actions={
           <>
-            <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
               <Plus className="h-4 w-4" />
               Log activity
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setEditOpen(true)}>
+            </Button>
+            <Button type="button" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
               Edit company
-            </button>
+            </Button>
           </>
         }
       />
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Profile</h2>
-        <DescriptionList
-          items={[
-            { label: 'Domain', value: company.domain ?? '—' },
-            { label: 'Industry', value: company.industry ?? '—' },
-            { label: 'Phone', value: company.phone ?? '—' },
-            { label: 'City', value: company.city ?? '—' },
-            { label: 'Country', value: company.country ?? '—' },
-            { label: 'Employees', value: company.employeeCount !== null ? String(company.employeeCount) : '—' },
-            {
-              label: 'Annual revenue',
-              value: company.annualRevenue !== null ? formatCurrency(company.annualRevenue, 'USD') : '—',
-            },
-            { label: 'Created', value: formatDate(company.createdAt) },
-            { label: 'Notes', value: company.notes ?? '—' },
-          ]}
-        />
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DescriptionList
+            items={[
+              { label: 'Domain', value: company.domain ?? '—' },
+              { label: 'Industry', value: company.industry ?? '—' },
+              { label: 'Phone', value: company.phone ?? '—' },
+              { label: 'City', value: company.city ?? '—' },
+              { label: 'Country', value: company.country ?? '—' },
+              { label: 'Employees', value: company.employeeCount !== null ? String(company.employeeCount) : '—' },
+              {
+                label: 'Annual revenue',
+                value: company.annualRevenue !== null ? formatCurrency(company.annualRevenue, 'USD') : '—',
+              },
+              { label: 'Created', value: formatDate(company.createdAt) },
+              { label: 'Notes', value: company.notes ?? '—' },
+            ]}
+          />
+        </CardContent>
+      </Card>
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Contacts</h2>
-        {company.contacts.length === 0 ? (
-          <p className="text-sm text-slate-500">No contacts at this company yet.</p>
-        ) : (
-          <table className="w-full">
-            <thead className="border-b border-slate-200">
-              <tr>
-                <th className="th">Name</th>
-                <th className="th">Email</th>
-                <th className="th">Position</th>
-                <th className="th">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {company.contacts.map((contact) => (
-                <tr
-                  key={contact.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => router.push(`/contacts/${contact.id}`)}
-                >
-                  <td className="td font-medium text-slate-900">{contact.name}</td>
-                  <td className="td">{contact.email ?? '—'}</td>
-                  <td className="td">{contact.position ?? '—'}</td>
-                  <td className="td">
-                    <StatusBadge variant={contact.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Contacts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {company.contacts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No contacts at this company yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {company.contacts.map((contact) => (
+                  <TableRow
+                    key={contact.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/contacts/${contact.id}`)}
+                  >
+                    <TableCell>
+                      <span className="font-medium text-foreground">{contact.name}</span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{contact.email ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contact.position ?? '—'}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge variant={contact.status} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Deals</h2>
-        {company.deals.length === 0 ? (
-          <p className="text-sm text-slate-500">No deals for this company yet.</p>
-        ) : (
-          <table className="w-full">
-            <thead className="border-b border-slate-200">
-              <tr>
-                <th className="th">Title</th>
-                <th className="th">Stage</th>
-                <th className="th">Value</th>
-                <th className="th">Expected close</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {company.deals.map((deal) => (
-                <tr
-                  key={deal.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => router.push(`/deals/${deal.id}`)}
-                >
-                  <td className="td font-medium text-slate-900">{deal.title}</td>
-                  <td className="td">
-                    <StatusBadge variant={deal.stage} />
-                  </td>
-                  <td className="td">{formatCurrency(deal.value, deal.currency)}</td>
-                  <td className="td">{formatDate(deal.expectedCloseDate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Deals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {company.deals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No deals for this company yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Title</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Value</TableHead>
+                  <TableHead>Expected close</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {company.deals.map((deal) => (
+                  <TableRow
+                    key={deal.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/deals/${deal.id}`)}
+                  >
+                    <TableCell>
+                      <span className="font-medium text-foreground">{deal.title}</span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge variant={deal.stage} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatCurrency(deal.value, deal.currency)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(deal.expectedCloseDate)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Activity</h2>
-          <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Log activity
-          </button>
-        </div>
-        <ActivityTimeline activities={activityPage?.items ?? []} />
-      </section>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Activity</CardTitle>
+            <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Log activity
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ActivityTimeline activities={activityPage?.items ?? []} />
+        </CardContent>
+      </Card>
 
       <AuditSection entityType="COMPANY" entityId={company.id} />
 

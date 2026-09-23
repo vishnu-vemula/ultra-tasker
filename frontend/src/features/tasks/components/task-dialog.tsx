@@ -1,6 +1,18 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import { Textarea } from '../../../shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
 import { TASK_PRIORITIES, TASK_STATUSES, type Task } from '../../../shared/types'
 import { taskFormSchema, type TaskFormValues } from '../model/schema'
 import { useCreateTask, useUpdateTask } from '../hooks/use-task-mutations'
@@ -36,6 +48,7 @@ export function TaskDialog({ task, onClose }: TaskDialogProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -65,91 +78,131 @@ export function TaskDialog({ task, onClose }: TaskDialogProps) {
   return (
     <Dialog title={task ? 'Edit task' : 'New task'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="task-title" className="label">
-            Title
-          </label>
-          <input id="task-title" type="text" className="input" {...register('title')} />
-          {errors.title ? <p className="mt-1 text-sm text-red-600">{errors.title.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="task-title">Title</Label>
+          <Input id="task-title" type="text" {...register('title')} />
+          {errors.title ? <p className="text-sm text-destructive">{errors.title.message}</p> : null}
         </div>
-        <div>
-          <label htmlFor="task-description" className="label">
-            Description
-          </label>
-          <textarea id="task-description" rows={3} className="input" {...register('description')} />
+        <div className="space-y-2">
+          <Label htmlFor="task-description">Description</Label>
+          <Textarea id="task-description" rows={3} {...register('description')} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="task-due-date" className="label">
-              Due date
-            </label>
-            <input id="task-due-date" type="date" className="input" {...register('dueDate')} />
-            {errors.dueDate ? <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="task-due-date">Due date</Label>
+            <Input id="task-due-date" type="date" {...register('dueDate')} />
+            {errors.dueDate ? <p className="text-sm text-destructive">{errors.dueDate.message}</p> : null}
           </div>
-          <div>
-            <label htmlFor="task-priority" className="label">
-              Priority
-            </label>
-            <select id="task-priority" className="select" {...register('priority')}>
-              <option value="">No priority</option>
-              {TASK_PRIORITIES.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority.charAt(0) + priority.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Priority</Label>
+            <Controller
+              control={control}
+              name="priority"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No priority</SelectItem>
+                    {TASK_PRIORITIES.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        {priority.charAt(0) + priority.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
-        <div>
-          <label htmlFor="task-status" className="label">
-            Status
-          </label>
-          <select id="task-status" className="select" {...register('status')}>
-            {TASK_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status
-                  .split('_')
-                  .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-                  .join(' ')}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status
+                        .split('_')
+                        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+                        .join(' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="task-contact" className="label">
-              Contact
-            </label>
-            <select id="task-contact" className="select" {...register('contactId')}>
-              <option value="">No contact</option>
-              {(contactPage?.items ?? []).map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Contact</Label>
+            <Controller
+              control={control}
+              name="contactId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No contact</SelectItem>
+                    {(contactPage?.items ?? []).map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-          <div>
-            <label htmlFor="task-deal" className="label">
-              Deal
-            </label>
-            <select id="task-deal" className="select" {...register('dealId')}>
-              <option value="">No deal</option>
-              {(dealPage?.items ?? []).map((deal) => (
-                <option key={deal.id} value={deal.id}>
-                  {deal.title}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Deal</Label>
+            <Controller
+              control={control}
+              name="dealId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No deal</SelectItem>
+                    {(dealPage?.items ?? []).map((deal) => (
+                      <SelectItem key={deal.id} value={deal.id}>
+                        {deal.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Save task'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

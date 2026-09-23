@@ -3,6 +3,9 @@ import { DragDropContext, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { Plus } from 'lucide-react'
 import { DEAL_STAGES, type Deal, type DealStage, type ReorderUpdate } from '../../../shared/types'
 import { titleCase, formatCurrency } from '../../../shared/lib/format'
+import { Badge } from '../../../shared/components/ui/badge'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
 import { useDeals } from '../hooks/use-deals'
 import { useReorderDeals } from '../hooks/use-deal-mutations'
 import { DealCard } from './deal-card'
@@ -72,7 +75,7 @@ export function DealBoard({ search }: DealBoardProps) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {DEAL_STAGES.map((stage) => (
-          <div key={stage} className="card h-64 animate-pulse bg-slate-50" />
+          <Card key={stage} className="h-64 animate-pulse bg-secondary" />
         ))}
       </div>
     )
@@ -83,22 +86,27 @@ export function DealBoard({ search }: DealBoardProps) {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map(({ stage, items, totals }) => (
-            <div key={stage} className="flex w-72 shrink-0 flex-col rounded-lg border border-slate-200 bg-slate-50">
-              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+            <Card key={stage} className="flex w-72 shrink-0 flex-col bg-secondary">
+              <div className="flex items-center justify-between border-b px-3 py-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">{titleCase(stage)}</p>
-                  <p className="text-xs text-slate-500">
-                    {items.length} · {totals.length > 0 ? totals.join(' / ') : formatCurrency(0, 'USD')}
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">{titleCase(stage)}</p>
+                    <Badge variant="muted">{items.length}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {totals.length > 0 ? totals.join(' / ') : formatCurrency(0, 'USD')}
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
-                  className="btn-ghost px-2 py-1.5"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => openCreate(stage)}
                   aria-label={`New deal in ${stage}`}
                 >
                   <Plus className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
               <Droppable droppableId={stage}>
                 {(provided, snapshot) => (
@@ -106,7 +114,7 @@ export function DealBoard({ search }: DealBoardProps) {
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={`flex min-h-24 flex-1 flex-col gap-2 p-2 transition-colors ${
-                      snapshot.isDraggingOver ? 'bg-indigo-50' : ''
+                      snapshot.isDraggingOver ? 'bg-primary/10' : ''
                     }`}
                   >
                     {items.map((deal, index) => (
@@ -116,7 +124,7 @@ export function DealBoard({ search }: DealBoardProps) {
                     {items.length === 0 && !snapshot.isDraggingOver ? (
                       <button
                         type="button"
-                        className="w-full rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-400 hover:border-indigo-400 hover:text-indigo-600"
+                        className="w-full rounded-lg border border-dashed border-border px-3 py-4 text-xs text-muted-foreground/70 hover:border-primary hover:text-primary"
                         onClick={() => openCreate(stage)}
                       >
                         + New deal
@@ -125,11 +133,11 @@ export function DealBoard({ search }: DealBoardProps) {
                   </div>
                 )}
               </Droppable>
-            </div>
+            </Card>
           ))}
         </div>
       </DragDropContext>
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs text-muted-foreground/70">
         {columns
           .filter((column) => OPEN_STAGES.includes(column.stage))
           .flatMap((column) => column.totals)

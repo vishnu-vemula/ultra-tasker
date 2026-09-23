@@ -4,7 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
+import { Loader2 } from 'lucide-react'
 import { getFirebaseAuth } from '../../../shared/lib/firebase'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
 import { loginSchema, type LoginFormValues } from '../model/schema'
 
 export function LoginForm() {
@@ -32,37 +36,35 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="login-email" className="label">
-          Email
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="login-email">Email</Label>
+        <Input
           id="login-email"
           type="email"
           autoComplete="email"
-          className="input"
+          placeholder="you@company.com"
+          aria-invalid={errors.email ? true : undefined}
           {...register('email')}
         />
-        {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
+        {errors.email ? <p className="text-sm text-destructive">{errors.email.message}</p> : null}
       </div>
-      <div>
-        <label htmlFor="login-password" className="label">
-          Password
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="login-password">Password</Label>
+        <Input
           id="login-password"
           type="password"
           autoComplete="current-password"
-          className="input"
+          aria-invalid={errors.password ? true : undefined}
           {...register('password')}
         />
         {errors.password ? (
-          <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         ) : null}
       </div>
-      <button type="submit" className="btn-primary w-full" disabled={submitting}>
+      <Button type="submit" className="w-full" disabled={submitting}>
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {submitting ? 'Signing in…' : 'Sign in'}
-      </button>
+      </Button>
     </form>
   )
 }

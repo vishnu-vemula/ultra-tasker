@@ -1,6 +1,18 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import { Textarea } from '../../../shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
 import { ACTIVITY_TYPES } from '../../../shared/types'
 import { toDateTimeLocalValue } from '../../../shared/lib/format'
 import { activityFormSchema, type ActivityFormValues } from '../model/schema'
@@ -35,6 +47,7 @@ export function ActivityDialog({ presetContactId, presetDealId, presetCompanyId,
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ActivityFormValues>({
     resolver: zodResolver(activityFormSchema),
@@ -61,83 +74,113 @@ export function ActivityDialog({ presetContactId, presetDealId, presetCompanyId,
     <Dialog title="Log activity" onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="activity-type" className="label">
-              Type
-            </label>
-            <select id="activity-type" className="select" {...register('type')}>
-              {ACTIVITY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type.charAt(0) + type.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTIVITY_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0) + type.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-          <div>
-            <label htmlFor="activity-occurred-at" className="label">
-              Occurred at
-            </label>
-            <input id="activity-occurred-at" type="datetime-local" className="input" {...register('occurredAt')} />
-            {errors.occurredAt ? <p className="mt-1 text-sm text-red-600">{errors.occurredAt.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="activity-occurred-at">Occurred at</Label>
+            <Input id="activity-occurred-at" type="datetime-local" {...register('occurredAt')} />
+            {errors.occurredAt ? (
+              <p className="text-sm text-destructive">{errors.occurredAt.message}</p>
+            ) : null}
           </div>
         </div>
-        <div>
-          <label htmlFor="activity-title" className="label">
-            Title
-          </label>
-          <input id="activity-title" type="text" className="input" {...register('title')} />
-          {errors.title ? <p className="mt-1 text-sm text-red-600">{errors.title.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="activity-title">Title</Label>
+          <Input id="activity-title" type="text" {...register('title')} />
+          {errors.title ? <p className="text-sm text-destructive">{errors.title.message}</p> : null}
         </div>
-        <div>
-          <label htmlFor="activity-duration" className="label">
-            Duration (minutes)
-          </label>
-          <input id="activity-duration" type="number" min="0" step="1" className="input" {...register('durationMin')} />
-          {errors.durationMin ? <p className="mt-1 text-sm text-red-600">{errors.durationMin.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="activity-duration">Duration (minutes)</Label>
+          <Input id="activity-duration" type="number" min="0" step="1" {...register('durationMin')} />
+          {errors.durationMin ? (
+            <p className="text-sm text-destructive">{errors.durationMin.message}</p>
+          ) : null}
         </div>
         {presetContactId === undefined ? (
-          <div>
-            <label htmlFor="activity-contact" className="label">
-              Contact
-            </label>
-            <select id="activity-contact" className="select" {...register('contactId')}>
-              <option value="">No contact</option>
-              {(contactPage?.items ?? []).map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Contact</Label>
+            <Controller
+              control={control}
+              name="contactId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No contact</SelectItem>
+                    {(contactPage?.items ?? []).map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         ) : null}
         {presetDealId === undefined ? (
-          <div>
-            <label htmlFor="activity-deal" className="label">
-              Deal
-            </label>
-            <select id="activity-deal" className="select" {...register('dealId')}>
-              <option value="">No deal</option>
-              {(dealPage?.items ?? []).map((deal) => (
-                <option key={deal.id} value={deal.id}>
-                  {deal.title}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Deal</Label>
+            <Controller
+              control={control}
+              name="dealId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No deal</SelectItem>
+                    {(dealPage?.items ?? []).map((deal) => (
+                      <SelectItem key={deal.id} value={deal.id}>
+                        {deal.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         ) : null}
-        <div>
-          <label htmlFor="activity-body" className="label">
-            Notes
-          </label>
-          <textarea id="activity-body" rows={3} className="input" {...register('body')} />
+        <div className="space-y-2">
+          <Label htmlFor="activity-body">Notes</Label>
+          <Textarea id="activity-body" rows={3} {...register('body')} />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Log activity'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

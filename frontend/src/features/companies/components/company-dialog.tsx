@@ -1,6 +1,11 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import { Textarea } from '../../../shared/components/ui/textarea'
 import type { Company } from '../../../shared/types'
 import { companyFormSchema, type CompanyFormValues } from '../model/schema'
 import { useCreateCompany, useUpdateCompany } from '../hooks/use-company-mutations'
@@ -75,76 +80,63 @@ export function CompanyDialog({ company, onClose }: CompanyDialogProps) {
   return (
     <Dialog title={company ? 'Edit company' : 'New company'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="company-name" className="label">
-            Name
-          </label>
-          <input id="company-name" type="text" className="input" {...register('name')} />
-          {errors.name ? <p className="mt-1 text-sm text-red-600">{errors.name.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="company-name">Name</Label>
+          <Input id="company-name" type="text" {...register('name')} />
+          {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="company-domain" className="label">
-              Domain
-            </label>
-            <input id="company-domain" type="text" placeholder="acme.com" className="input" {...register('domain')} />
+          <div className="space-y-2">
+            <Label htmlFor="company-domain">Domain</Label>
+            <Input id="company-domain" type="text" placeholder="acme.com" {...register('domain')} />
           </div>
-          <div>
-            <label htmlFor="company-industry" className="label">
-              Industry
-            </label>
-            <input id="company-industry" type="text" className="input" {...register('industry')} />
+          <div className="space-y-2">
+            <Label htmlFor="company-industry">Industry</Label>
+            <Input id="company-industry" type="text" {...register('industry')} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="company-phone" className="label">
-              Phone
-            </label>
-            <input id="company-phone" type="tel" className="input" {...register('phone')} />
+          <div className="space-y-2">
+            <Label htmlFor="company-phone">Phone</Label>
+            <Input id="company-phone" type="tel" {...register('phone')} />
           </div>
-          <div>
-            <label htmlFor="company-city" className="label">
-              City
-            </label>
-            <input id="company-city" type="text" className="input" {...register('city')} />
+          <div className="space-y-2">
+            <Label htmlFor="company-city">City</Label>
+            <Input id="company-city" type="text" {...register('city')} />
           </div>
-          <div>
-            <label htmlFor="company-country" className="label">
-              Country
-            </label>
-            <input id="company-country" type="text" className="input" {...register('country')} />
+          <div className="space-y-2">
+            <Label htmlFor="company-country">Country</Label>
+            <Input id="company-country" type="text" {...register('country')} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="company-employees" className="label">
-              Employee count
-            </label>
-            <input id="company-employees" type="number" min="0" step="1" className="input" {...register('employeeCount')} />
-            {errors.employeeCount ? <p className="mt-1 text-sm text-red-600">{errors.employeeCount.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="company-employees">Employee count</Label>
+            <Input id="company-employees" type="number" min="0" step="1" {...register('employeeCount')} />
+            {errors.employeeCount ? (
+              <p className="text-sm text-destructive">{errors.employeeCount.message}</p>
+            ) : null}
           </div>
-          <div>
-            <label htmlFor="company-revenue" className="label">
-              Annual revenue
-            </label>
-            <input id="company-revenue" type="number" min="0" step="any" className="input" {...register('annualRevenue')} />
-            {errors.annualRevenue ? <p className="mt-1 text-sm text-red-600">{errors.annualRevenue.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="company-revenue">Annual revenue</Label>
+            <Input id="company-revenue" type="number" min="0" step="any" {...register('annualRevenue')} />
+            {errors.annualRevenue ? (
+              <p className="text-sm text-destructive">{errors.annualRevenue.message}</p>
+            ) : null}
           </div>
         </div>
-        <div>
-          <label htmlFor="company-notes" className="label">
-            Notes
-          </label>
-          <textarea id="company-notes" rows={3} className="input" {...register('notes')} />
+        <div className="space-y-2">
+          <Label htmlFor="company-notes">Notes</Label>
+          <Textarea id="company-notes" rows={3} {...register('notes')} />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Save company'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

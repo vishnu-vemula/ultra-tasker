@@ -3,6 +3,8 @@ import { Building2, User } from 'lucide-react'
 import clsx from 'clsx'
 import type { Deal } from '../../../shared/types'
 import { formatCurrency, formatDate } from '../../../shared/lib/format'
+import { Badge } from '../../../shared/components/ui/badge'
+import { Card } from '../../../shared/components/ui/card'
 
 interface DealCardProps {
   deal: Deal
@@ -20,24 +22,22 @@ export function DealCard({ deal, index, onEdit }: DealCardProps) {
   return (
     <Draggable draggableId={deal.id} index={index}>
       {(provided, snapshot) => (
-        <div
+        <Card
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={clsx(
-            'card cursor-grab p-3 active:cursor-grabbing',
-            snapshot.isDragging && 'ring-2 ring-indigo-500',
+            'cursor-grab p-3 active:cursor-grabbing',
+            snapshot.isDragging && 'ring-2 ring-primary',
           )}
           onClick={() => onEdit(deal)}
         >
-          <p className="mb-1 text-sm font-medium text-slate-900">{deal.title}</p>
-          <p className="mb-2 text-sm font-semibold text-indigo-600">
+          <p className="mb-1 text-sm font-medium text-foreground">{deal.title}</p>
+          <p className="mb-2 text-sm font-semibold text-primary">
             {formatCurrency(deal.value, deal.currency)}
           </p>
-          <div className="space-y-1 text-xs text-slate-500">
-            <p className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-              {deal.probability}% likely
-            </p>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <Badge variant="muted">{deal.probability}% likely</Badge>
             {deal.contact ? (
               <p className="flex items-center gap-1">
                 <User className="h-3 w-3" />
@@ -51,18 +51,13 @@ export function DealCard({ deal, index, onEdit }: DealCardProps) {
               </p>
             ) : null}
             {deal.expectedCloseDate ? (
-              <p
-                className={clsx(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
-                  overdue ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600',
-                )}
-              >
+              <Badge variant={overdue ? 'danger' : 'muted'}>
                 {overdue ? 'Overdue · ' : ''}
                 {formatDate(deal.expectedCloseDate)}
-              </p>
+              </Badge>
             ) : null}
           </div>
-        </div>
+        </Card>
       )}
     </Draggable>
   )

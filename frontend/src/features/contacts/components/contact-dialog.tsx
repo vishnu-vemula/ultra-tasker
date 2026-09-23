@@ -1,7 +1,19 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import { Textarea } from '../../../shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
 import { CONTACT_SOURCES, CONTACT_STATUSES, type Contact } from '../../../shared/types'
 import { contactFormSchema, type ContactFormValues } from '../model/schema'
 import { useCreateContact, useSetContactTags, useUpdateContact } from '../hooks/use-contact-mutations'
@@ -58,6 +70,7 @@ export function ContactDialog({ contact, onClose }: ContactDialogProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -97,116 +110,134 @@ export function ContactDialog({ contact, onClose }: ContactDialogProps) {
   return (
     <Dialog title={contact ? 'Edit contact' : 'New contact'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="contact-name" className="label">
-            Name
-          </label>
-          <input id="contact-name" type="text" className="input" {...register('name')} />
-          {errors.name ? <p className="mt-1 text-sm text-red-600">{errors.name.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="contact-name">Name</Label>
+          <Input id="contact-name" type="text" {...register('name')} />
+          {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="contact-email" className="label">
-              Email
-            </label>
-            <input id="contact-email" type="email" className="input" {...register('email')} />
-            {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="contact-email">Email</Label>
+            <Input id="contact-email" type="email" {...register('email')} />
+            {errors.email ? <p className="text-sm text-destructive">{errors.email.message}</p> : null}
           </div>
-          <div>
-            <label htmlFor="contact-phone" className="label">
-              Phone
-            </label>
-            <input id="contact-phone" type="tel" className="input" {...register('phone')} />
+          <div className="space-y-2">
+            <Label htmlFor="contact-phone">Phone</Label>
+            <Input id="contact-phone" type="tel" {...register('phone')} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="contact-position" className="label">
-              Position
-            </label>
-            <input id="contact-position" type="text" className="input" {...register('position')} />
+          <div className="space-y-2">
+            <Label htmlFor="contact-position">Position</Label>
+            <Input id="contact-position" type="text" {...register('position')} />
           </div>
-          <div>
-            <label htmlFor="contact-status" className="label">
-              Status
-            </label>
-            <select id="contact-status" className="select" {...register('status')}>
-              {CONTACT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Controller
+              control={control}
+              name="status"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTACT_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="contact-website" className="label">
-              Website
-            </label>
-            <input id="contact-website" type="text" placeholder="acme.com" className="input" {...register('website')} />
+          <div className="space-y-2">
+            <Label htmlFor="contact-website">Website</Label>
+            <Input id="contact-website" type="text" placeholder="acme.com" {...register('website')} />
           </div>
-          <div>
-            <label htmlFor="contact-company" className="label">
-              Company
-            </label>
-            <select id="contact-company" className="select" {...register('companyId')}>
-              <option value="">No company</option>
-              {(companyPage?.items ?? []).map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Company</Label>
+            <Controller
+              control={control}
+              name="companyId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No company</SelectItem>
+                    {(companyPage?.items ?? []).map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="contact-city" className="label">
-              City
-            </label>
-            <input id="contact-city" type="text" className="input" {...register('city')} />
+          <div className="space-y-2">
+            <Label htmlFor="contact-city">City</Label>
+            <Input id="contact-city" type="text" {...register('city')} />
           </div>
-          <div>
-            <label htmlFor="contact-country" className="label">
-              Country
-            </label>
-            <input id="contact-country" type="text" className="input" {...register('country')} />
+          <div className="space-y-2">
+            <Label htmlFor="contact-country">Country</Label>
+            <Input id="contact-country" type="text" {...register('country')} />
           </div>
-          <div>
-            <label htmlFor="contact-source" className="label">
-              Source
-            </label>
-            <select id="contact-source" className="select" {...register('source')}>
-              <option value="">No source</option>
-              {CONTACT_SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {source
-                    .split('_')
-                    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-                    .join(' ')}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Source</Label>
+            <Controller
+              control={control}
+              name="source"
+              render={({ field }) => (
+                <Select
+                  value={field.value || 'NONE'}
+                  onValueChange={(value) => field.onChange(value === 'NONE' ? '' : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No source</SelectItem>
+                    {CONTACT_SOURCES.map((source) => (
+                      <SelectItem key={source} value={source}>
+                        {source
+                          .split('_')
+                          .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+                          .join(' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
         </div>
-        <div>
-          <span className="label">Tags</span>
+        <div className="space-y-2">
+          <Label>Tags</Label>
           <TagSelect value={tagIds} onChange={setTagIds} />
         </div>
-        <div>
-          <label htmlFor="contact-notes" className="label">
-            Notes
-          </label>
-          <textarea id="contact-notes" rows={3} className="input" {...register('notes')} />
+        <div className="space-y-2">
+          <Label htmlFor="contact-notes">Notes</Label>
+          <Textarea id="contact-notes" rows={3} {...register('notes')} />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Save contact'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

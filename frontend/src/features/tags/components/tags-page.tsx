@@ -1,12 +1,25 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { PageHeader } from '../../../shared/components/page-header'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { EmptyState } from '../../../shared/components/empty-state'
+import { Badge } from '../../../shared/components/ui/badge'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatDate } from '../../../shared/lib/format'
 import type { Tag } from '../../../shared/types'
 import { tagFormSchema, type TagFormValues } from '../model/schema'
@@ -49,36 +62,33 @@ function TagDialog({ tag, onClose }: TagDialogProps) {
   return (
     <Dialog title={tag ? 'Edit tag' : 'New tag'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="tag-name" className="label">
-            Name
-          </label>
-          <input id="tag-name" type="text" className="input" {...register('name')} />
-          {errors.name ? <p className="mt-1 text-sm text-red-600">{errors.name.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="tag-name">Name</Label>
+          <Input id="tag-name" type="text" {...register('name')} />
+          {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
-        <div>
-          <label htmlFor="tag-color" className="label">
-            Color
-          </label>
+        <div className="space-y-2">
+          <Label htmlFor="tag-color">Color</Label>
           <div className="flex items-center gap-3">
             <input
               id="tag-color"
               type="color"
-              className="h-10 w-14 cursor-pointer rounded border border-slate-200 bg-white p-1"
+              className="h-10 w-14 cursor-pointer rounded border bg-card p-1"
               value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#6366f1'}
               onChange={(event) => setValue('color', event.target.value, { shouldValidate: true })}
             />
-            <input type="text" className="input font-mono" {...register('color')} />
+            <Input type="text" className="font-mono" {...register('color')} />
           </div>
-          {errors.color ? <p className="mt-1 text-sm text-red-600">{errors.color.message}</p> : null}
+          {errors.color ? <p className="text-sm text-destructive">{errors.color.message}</p> : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Save tag'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>
@@ -107,10 +117,10 @@ export function TagsPage() {
         title="Tags"
         description="Labels you can attach to contacts and deals"
         action={
-          <button type="button" className="btn-primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             New tag
-          </button>
+          </Button>
         }
       />
       {isLoading ? (
@@ -120,46 +130,49 @@ export function TagsPage() {
           title="No tags yet"
           description="Add your first tag to start organizing contacts and deals."
           action={
-            <button type="button" className="btn-primary" onClick={openCreate}>
+            <Button type="button" onClick={openCreate}>
               <Plus className="h-4 w-4" />
               New tag
-            </button>
+            </Button>
           }
         />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Name</th>
-                <th className="th">Color</th>
-                <th className="th">Created</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>Color</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.items.map((tag) => (
-                <tr
+                <TableRow
                   key={tag.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  className="cursor-pointer"
                   onClick={() => openEdit(tag)}
                 >
-                  <td className="td">
-                    <span className="badge items-center gap-1.5 bg-slate-100 text-slate-700">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                  <TableCell>
+                    <Badge variant="muted" className="gap-1.5">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: tag.color }}
+                      />
                       {tag.name}
-                    </span>
-                  </td>
-                  <td className="td font-mono text-xs text-slate-500">{tag.color}</td>
-                  <td className="td">{formatDate(tag.createdAt)}</td>
-                  <td className="td text-right">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{tag.color}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(tag.createdAt)}</TableCell>
+                  <TableCell className="text-right">
                     <ConfirmButton onConfirm={() => deleteMutation.mutate(tag.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
       {dialogOpen ? <TagDialog tag={editing} onClose={() => setDialogOpen(false)} /> : null}
     </div>

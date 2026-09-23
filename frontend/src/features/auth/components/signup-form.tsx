@@ -4,7 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
+import { Loader2 } from 'lucide-react'
 import { getFirebaseAuth } from '../../../shared/lib/firebase'
+import { Button } from '../../../shared/components/ui/button'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
 import { signupSchema, type SignupFormValues } from '../model/schema'
 import { postSession } from '../api/auth-api'
 
@@ -35,44 +39,32 @@ export function SignupForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="signup-name" className="label">
-          Name
-        </label>
-        <input id="signup-name" type="text" autoComplete="name" className="input" {...register('name')} />
-        {errors.name ? <p className="mt-1 text-sm text-red-600">{errors.name.message}</p> : null}
+      <div className="space-y-2">
+        <Label htmlFor="signup-name">Name</Label>
+        <Input id="signup-name" type="text" autoComplete="name" {...register('name')} />
+        {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
       </div>
-      <div>
-        <label htmlFor="signup-email" className="label">
-          Email
-        </label>
-        <input
-          id="signup-email"
-          type="email"
-          autoComplete="email"
-          className="input"
-          {...register('email')}
-        />
-        {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
+      <div className="space-y-2">
+        <Label htmlFor="signup-email">Email</Label>
+        <Input id="signup-email" type="email" autoComplete="email" {...register('email')} />
+        {errors.email ? <p className="text-sm text-destructive">{errors.email.message}</p> : null}
       </div>
-      <div>
-        <label htmlFor="signup-password" className="label">
-          Password
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password</Label>
+        <Input
           id="signup-password"
           type="password"
           autoComplete="new-password"
-          className="input"
           {...register('password')}
         />
         {errors.password ? (
-          <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         ) : null}
       </div>
-      <button type="submit" className="btn-primary w-full" disabled={submitting}>
+      <Button type="submit" className="w-full" disabled={submitting}>
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {submitting ? 'Creating account…' : 'Create account'}
-      </button>
+      </Button>
     </form>
   )
 }

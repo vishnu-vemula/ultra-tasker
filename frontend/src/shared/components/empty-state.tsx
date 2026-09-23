@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { LayoutDashboard } from 'lucide-react'
+import { Card } from './ui/card'
 
 interface EmptyStateProps {
   icon?: typeof LayoutDashboard
@@ -10,11 +11,17 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="card flex flex-col items-center gap-3 p-12 text-center">
-      {Icon ? <Icon className="h-10 w-10 text-slate-300" /> : null}
-      <p className="text-sm font-medium text-slate-900">{title}</p>
-      {description ? <p className="text-sm text-slate-500">{description}</p> : null}
-      {action}
-    </div>
+    <Card className="border-dashed shadow-none">
+      <div className="flex flex-col items-center gap-3 p-12 text-center">
+        {Icon ? (
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+            <Icon className="h-6 w-6 text-muted-foreground" />
+          </span>
+        ) : null}
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        {description ? <p className="max-w-sm text-sm text-muted-foreground">{description}</p> : null}
+        {action}
+      </div>
+    </Card>
   )
 }

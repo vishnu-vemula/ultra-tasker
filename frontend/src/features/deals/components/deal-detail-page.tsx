@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Pencil, Plus } from 'lucide-react'
+import { Loader2, Pencil, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import { useDealDetail } from '../hooks/use-deals'
 import {
@@ -17,6 +17,26 @@ import { DescriptionList } from '../../../shared/components/description-list'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { AuditSection } from '../../../shared/components/audit-section'
+import { Badge } from '../../../shared/components/ui/badge'
+import { Button } from '../../../shared/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card'
+import { Input } from '../../../shared/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatCurrency, formatDate, titleCase } from '../../../shared/lib/format'
 import { DEAL_STAGES } from '../../../shared/types'
 import { useProducts } from '../../products/hooks/use-products'
@@ -50,40 +70,40 @@ function LineItemRow({ dealId, item, currency }: LineItemRowProps) {
   }
 
   return (
-    <tr>
-      <td className="td">
-        <p className="font-medium text-slate-900">{item.description}</p>
-        {item.product ? <p className="text-xs text-slate-400">{item.product.name}</p> : null}
-      </td>
-      <td className="td">
-        <input
+    <TableRow>
+      <TableCell>
+        <p className="font-medium text-foreground">{item.description}</p>
+        {item.product ? <p className="text-xs text-muted-foreground/70">{item.product.name}</p> : null}
+      </TableCell>
+      <TableCell>
+        <Input
           key={`${item.id}-qty-${item.quantity}`}
           type="number"
           min="1"
           step="1"
           defaultValue={item.quantity}
-          className="input w-20 px-2 py-1"
+          className="w-20 px-2 py-1"
           onBlur={(event) => commitQuantity(event.target.value)}
         />
-      </td>
-      <td className="td">
-        <input
+      </TableCell>
+      <TableCell>
+        <Input
           key={`${item.id}-price-${item.unitPrice}`}
           type="number"
           min="0"
           step="any"
           defaultValue={item.unitPrice}
-          className="input w-28 px-2 py-1"
+          className="w-28 px-2 py-1"
           onBlur={(event) => commitUnitPrice(event.target.value)}
         />
-      </td>
-      <td className="td font-medium text-slate-900">
+      </TableCell>
+      <TableCell className="font-medium text-foreground">
         {formatCurrency(item.quantity * item.unitPrice, currency)}
-      </td>
-      <td className="td text-right">
+      </TableCell>
+      <TableCell className="text-right">
         <ConfirmButton onConfirm={() => deleteMutation.mutate({ dealId, itemId: item.id })} />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -134,58 +154,72 @@ function AddItemRow({ dealId }: AddItemRowProps) {
   }
 
   return (
-    <tr className="bg-slate-50">
-      <td className="td">
-        <select className="select mb-1 w-40" value={productId} onChange={(event) => selectProduct(event.target.value)}>
-          <option value="">Free text</option>
-          {products.map((product) => (
-            <option key={product.id} value={product.id}>
-              {product.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Description"
-          className="input"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-      </td>
-      <td className="td">
-        <input
+    <TableRow className="bg-secondary">
+      <TableCell>
+        <div className="space-y-1">
+          <Select
+            value={productId || 'NONE'}
+            onValueChange={(value) => selectProduct(value === 'NONE' ? '' : value)}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NONE">Free text</SelectItem>
+              {products.map((product) => (
+                <SelectItem key={product.id} value={product.id}>
+                  {product.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="text"
+            placeholder="Description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </div>
+      </TableCell>
+      <TableCell>
+        <Input
           type="number"
           min="1"
           step="1"
-          className="input w-20 px-2 py-1"
+          className="w-20 px-2 py-1"
           value={quantity}
           onChange={(event) => setQuantity(event.target.value)}
         />
-      </td>
-      <td className="td">
-        <input
+      </TableCell>
+      <TableCell>
+        <Input
           type="number"
           min="0"
           step="any"
-          className="input w-28 px-2 py-1"
+          className="w-28 px-2 py-1"
           value={unitPrice}
           onChange={(event) => setUnitPrice(event.target.value)}
           placeholder="0.00"
         />
-      </td>
-      <td className="td" />
-      <td className="td text-right">
-        <button
+      </TableCell>
+      <TableCell />
+      <TableCell className="text-right">
+        <Button
           type="button"
-          className="btn-secondary px-2.5 py-1.5"
+          variant="outline"
+          size="sm"
           disabled={!description.trim() || createMutation.isPending}
           onClick={submit}
         >
-          <Plus className="h-4 w-4" />
+          {createMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           Add
-        </button>
-      </td>
-    </tr>
+        </Button>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -231,19 +265,19 @@ export function DealDetailPage() {
         }`}
         actions={
           <>
-            <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
               <Plus className="h-4 w-4" />
               Log activity
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setEditOpen(true)}>
+            </Button>
+            <Button type="button" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
               Edit deal
-            </button>
+            </Button>
           </>
         }
       />
 
-      <section className="card p-6">
+      <Card className="p-6">
         <div className="flex flex-wrap items-center gap-2">
           {DEAL_STAGES.map((stage, index) => (
             <button
@@ -253,8 +287,8 @@ export function DealDetailPage() {
               className={clsx(
                 'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
                 stage === deal.stage
-                  ? 'border-indigo-600 bg-indigo-600 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-400 hover:text-indigo-700',
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border bg-card text-muted-foreground hover:border-primary hover:text-primary',
               )}
               onClick={() => stageMutation.mutate({ id: deal.id, input: { stage } })}
             >
@@ -262,128 +296,146 @@ export function DealDetailPage() {
             </button>
           ))}
         </div>
-      </section>
+      </Card>
 
-      <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Details</h2>
-        <DescriptionList
-          items={[
-            { label: 'Value', value: formatCurrency(deal.value, deal.currency) },
-            { label: 'Probability', value: `${deal.probability}%` },
-            { label: 'Stage', value: titleCase(deal.stage) },
-            { label: 'Source', value: deal.source ? titleCase(deal.source) : '—' },
-            { label: 'Expected close', value: formatDate(deal.expectedCloseDate) },
-            { label: 'Closed at', value: formatDate(deal.closedAt) },
-            { label: 'Next step', value: deal.nextStep ?? '—' },
-            { label: 'Lost reason', value: deal.lostReason ?? '—' },
-            {
-              label: 'Contact',
-              value:
-                deal.contact && deal.contactId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/contacts/${deal.contactId}`}>
-                    {deal.contact.name}
-                  </Link>
-                ) : (
-                  '—'
-                ),
-            },
-            {
-              label: 'Company',
-              value:
-                deal.company && deal.companyId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/companies/${deal.companyId}`}>
-                    {deal.company.name}
-                  </Link>
-                ) : (
-                  '—'
-                ),
-            },
-            { label: 'Notes', value: deal.notes ?? '—' },
-          ]}
-        />
-        <div className="mt-6 border-t border-slate-100 pt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tags</span>
-            {editingTags ? (
-              <div className="flex gap-2">
-                <button type="button" className="btn-secondary px-2.5 py-1 text-xs" onClick={() => setEditingTags(false)}>
-                  Cancel
-                </button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DescriptionList
+            items={[
+              { label: 'Value', value: formatCurrency(deal.value, deal.currency) },
+              { label: 'Probability', value: `${deal.probability}%` },
+              { label: 'Stage', value: titleCase(deal.stage) },
+              { label: 'Source', value: deal.source ? titleCase(deal.source) : '—' },
+              { label: 'Expected close', value: formatDate(deal.expectedCloseDate) },
+              { label: 'Closed at', value: formatDate(deal.closedAt) },
+              { label: 'Next step', value: deal.nextStep ?? '—' },
+              { label: 'Lost reason', value: deal.lostReason ?? '—' },
+              {
+                label: 'Contact',
+                value:
+                  deal.contact && deal.contactId ? (
+                    <Link className="text-primary hover:text-primary/80" href={`/contacts/${deal.contactId}`}>
+                      {deal.contact.name}
+                    </Link>
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                label: 'Company',
+                value:
+                  deal.company && deal.companyId ? (
+                    <Link className="text-primary hover:text-primary/80" href={`/companies/${deal.companyId}`}>
+                      {deal.company.name}
+                    </Link>
+                  ) : (
+                    '—'
+                  ),
+              },
+              { label: 'Notes', value: deal.notes ?? '—' },
+            ]}
+          />
+          <div className="mt-6 border-t pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">Tags</span>
+              {editingTags ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingTags(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={setTagsMutation.isPending}
+                    onClick={() => void saveTags()}
+                  >
+                    {setTagsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Save tags
+                  </Button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  className="btn-primary px-2.5 py-1 text-xs"
-                  disabled={setTagsMutation.isPending}
-                  onClick={() => void saveTags()}
+                  className="text-xs font-medium text-primary hover:text-primary/80"
+                  onClick={startEditTags}
                 >
-                  Save tags
+                  Edit tags
                 </button>
+              )}
+            </div>
+            {editingTags ? (
+              <TagSelect value={draftTagIds} onChange={setDraftTagIds} />
+            ) : deal.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {deal.tags.map((tag) => (
+                  <Badge key={tag.id} variant="muted" className="gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
             ) : (
-              <button type="button" className="text-xs font-medium text-indigo-600 hover:text-indigo-700" onClick={startEditTags}>
-                Edit tags
-              </button>
+              <p className="text-sm text-muted-foreground">No tags.</p>
             )}
           </div>
-          {editingTags ? (
-            <TagSelect value={draftTagIds} onChange={setDraftTagIds} />
-          ) : deal.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {deal.tags.map((tag) => (
-                <span key={tag.id} className="badge items-center gap-1.5 bg-slate-100 text-slate-700">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">No tags.</p>
-          )}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Line items</h2>
-          <p className="text-xs text-slate-400">Deal value syncs automatically when items change.</p>
-        </div>
-        <table className="w-full">
-          <thead className="border-y border-slate-200 bg-slate-50">
-            <tr>
-              <th className="th">Description</th>
-              <th className="th">Qty</th>
-              <th className="th">Unit price</th>
-              <th className="th">Line total</th>
-              <th className="th" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <Card className="overflow-hidden">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle>Line items</CardTitle>
+          <CardDescription>Deal value syncs automatically when items change.</CardDescription>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Description</TableHead>
+              <TableHead>Qty</TableHead>
+              <TableHead>Unit price</TableHead>
+              <TableHead>Line total</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {deal.items.map((item) => (
               <LineItemRow key={item.id} dealId={deal.id} item={item} currency={deal.currency} />
             ))}
             <AddItemRow dealId={deal.id} />
-          </tbody>
-          <tfoot className="border-t border-slate-200 bg-slate-50">
-            <tr>
-              <td className="td font-semibold text-slate-900" colSpan={3}>
+          </TableBody>
+          <TableFooter>
+            <TableRow className="hover:bg-transparent">
+              <TableCell className="font-semibold text-foreground" colSpan={3}>
                 Items total
-              </td>
-              <td className="td font-semibold text-slate-900">{formatCurrency(itemsTotal, deal.currency)}</td>
-              <td className="td" />
-            </tr>
-          </tfoot>
-        </table>
-      </section>
+              </TableCell>
+              <TableCell className="font-semibold text-foreground">
+                {formatCurrency(itemsTotal, deal.currency)}
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </Card>
 
-      <section className="card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Activity</h2>
-          <button type="button" className="btn-secondary" onClick={() => setActivityOpen(true)}>
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Activity</CardTitle>
+          <Button type="button" variant="outline" onClick={() => setActivityOpen(true)}>
             <Plus className="h-4 w-4" />
             Log activity
-          </button>
-        </div>
-        <ActivityTimeline activities={deal.activities} />
-      </section>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <ActivityTimeline activities={deal.activities} />
+        </CardContent>
+      </Card>
 
       <AuditSection entityType="DEAL" entityId={deal.id} />
 

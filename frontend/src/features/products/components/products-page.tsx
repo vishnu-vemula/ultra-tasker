@@ -1,12 +1,31 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Package, Plus, Search } from 'lucide-react'
+import { Loader2, Package, Plus, Search } from 'lucide-react'
 import { Dialog } from '../../../shared/components/dialog'
 import { ConfirmButton } from '../../../shared/components/confirm-button'
 import { PageHeader } from '../../../shared/components/page-header'
 import { SkeletonList } from '../../../shared/components/skeleton'
 import { EmptyState } from '../../../shared/components/empty-state'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
+import { Input } from '../../../shared/components/ui/input'
+import { Label } from '../../../shared/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { formatCurrency, formatDate } from '../../../shared/lib/format'
 import { CURRENCIES, type Product } from '../../../shared/types'
@@ -37,6 +56,7 @@ function ProductDialog({ product, onClose }: ProductDialogProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -64,55 +84,62 @@ function ProductDialog({ product, onClose }: ProductDialogProps) {
   return (
     <Dialog title={product ? 'Edit product' : 'New product'} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="product-name" className="label">
-            Name
-          </label>
-          <input id="product-name" type="text" className="input" {...register('name')} />
-          {errors.name ? <p className="mt-1 text-sm text-red-600">{errors.name.message}</p> : null}
+        <div className="space-y-2">
+          <Label htmlFor="product-name">Name</Label>
+          <Input id="product-name" type="text" {...register('name')} />
+          {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="product-sku" className="label">
-              SKU
-            </label>
-            <input id="product-sku" type="text" className="input" {...register('sku')} />
+          <div className="space-y-2">
+            <Label htmlFor="product-sku">SKU</Label>
+            <Input id="product-sku" type="text" {...register('sku')} />
           </div>
-          <div>
-            <label htmlFor="product-price" className="label">
-              Price
-            </label>
-            <input id="product-price" type="number" min="0" step="any" className="input" {...register('price')} />
-            {errors.price ? <p className="mt-1 text-sm text-red-600">{errors.price.message}</p> : null}
+          <div className="space-y-2">
+            <Label htmlFor="product-price">Price</Label>
+            <Input id="product-price" type="number" min="0" step="any" {...register('price')} />
+            {errors.price ? <p className="text-sm text-destructive">{errors.price.message}</p> : null}
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="product-currency" className="label">
-              Currency
-            </label>
-            <select id="product-currency" className="select" {...register('currency')}>
-              {CURRENCIES.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label>Currency</Label>
+            <Controller
+              control={control}
+              name="currency"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency} value={currency}>
+                        {currency}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="flex items-end pb-1">
-            <label htmlFor="product-active" className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-              <input id="product-active" type="checkbox" className="h-4 w-4 rounded border-slate-300" {...register('active')} />
+            <label
+              htmlFor="product-active"
+              className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+            >
+              <input id="product-active" type="checkbox" className="h-4 w-4 rounded border" {...register('active')} />
               Active
             </label>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? 'Saving…' : 'Save product'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>
@@ -146,19 +173,19 @@ export function ProductsPage() {
         title="Products"
         description="Catalog items you can attach to deal line items"
         action={
-          <button type="button" className="btn-primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             New product
-          </button>
+          </Button>
         }
       />
       <div className="mb-4">
         <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Input
             type="search"
             placeholder="Search products…"
-            className="input pl-9"
+            className="pl-9"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -172,55 +199,57 @@ export function ProductsPage() {
           title="No products yet"
           description="Add your first product to use it on deal line items."
           action={
-            <button type="button" className="btn-primary" onClick={openCreate}>
+            <Button type="button" onClick={openCreate}>
               <Plus className="h-4 w-4" />
               New product
-            </button>
+            </Button>
           }
         />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Name</th>
-                <th className="th">SKU</th>
-                <th className="th">Price</th>
-                <th className="th">Active</th>
-                <th className="th">Created</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.items.map((product) => (
-                <tr
+                <TableRow
                   key={product.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  className="cursor-pointer"
                   onClick={() => openEdit(product)}
                 >
-                  <td className="td font-medium text-slate-900">{product.name}</td>
-                  <td className="td">{product.sku ?? '—'}</td>
-                  <td className="td">{formatCurrency(product.price, product.currency)}</td>
-                  <td className="td" onClick={(event) => event.stopPropagation()}>
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                  <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{product.sku ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatCurrency(product.price, product.currency)}
+                  </TableCell>
+                  <TableCell onClick={(event) => event.stopPropagation()}>
+                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border"
                         checked={product.active}
                         onChange={() => updateMutation.mutate({ id: product.id, input: { active: !product.active } })}
                       />
                       {product.active ? 'Active' : 'Inactive'}
                     </label>
-                  </td>
-                  <td className="td">{formatDate(product.createdAt)}</td>
-                  <td className="td text-right">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(product.createdAt)}</TableCell>
+                  <TableCell className="text-right">
                     <ConfirmButton onConfirm={() => deleteMutation.mutate(product.id)} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
       {dialogOpen ? <ProductDialog product={editing} onClose={() => setDialogOpen(false)} /> : null}
     </div>

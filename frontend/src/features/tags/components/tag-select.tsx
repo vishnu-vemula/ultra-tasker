@@ -15,11 +15,11 @@ export function TagSelect({ value, onChange }: TagSelectProps) {
   }
 
   if (isLoading) {
-    return <div className="h-8 animate-pulse rounded bg-slate-100" />
+    return <div className="h-8 animate-pulse rounded bg-secondary" />
   }
 
   if (tags.length === 0) {
-    return <p className="text-sm text-slate-500">No tags yet — create them in Settings → Tags.</p>
+    return <p className="text-sm text-muted-foreground">No tags yet — create them in Settings → Tags.</p>
   }
 
   return (
@@ -33,11 +33,12 @@ export function TagSelect({ value, onChange }: TagSelectProps) {
             aria-pressed={selected}
             onClick={() => toggle(tag.id)}
             className={clsx(
-              'badge cursor-pointer items-center gap-1.5 border transition-colors',
+              'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
               selected
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                ? 'border-transparent text-white'
+                : 'bg-secondary text-foreground hover:bg-secondary/70',
             )}
+            style={selected ? { backgroundColor: tag.color } : undefined}
           >
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color }} />
             {tag.name}

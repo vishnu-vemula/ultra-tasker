@@ -4,6 +4,21 @@ import { useStats } from '../hooks/use-stats'
 import { useDeals } from '../../deals/hooks/use-deals'
 import { PageHeader } from '../../../shared/components/page-header'
 import { SkeletonCard } from '../../../shared/components/skeleton'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../../shared/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { formatCurrency, formatDate, formatMonthLabel, titleCase } from '../../../shared/lib/format'
 import { DEAL_STAGES } from '../../../shared/types'
 
@@ -16,16 +31,18 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon: Icon }: StatCardProps) {
   return (
-    <div className="card flex items-start gap-4 p-5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-        <Icon className="h-5 w-5 text-indigo-600" />
-      </span>
-      <div>
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="text-2xl font-semibold text-slate-900">{value}</p>
-        {sub ? <p className="text-xs text-slate-400">{sub}</p> : null}
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-5 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-5 w-5 text-primary" />
+        </span>
+      </CardHeader>
+      <CardContent className="p-5 pt-1">
+        <p className="text-2xl font-semibold leading-none text-foreground">{value}</p>
+        {sub ? <CardDescription className="mt-1.5 text-xs">{sub}</CardDescription> : null}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -72,108 +89,141 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Revenue (last 6 months)</h2>
-          {revenue.length === 0 ? (
-            <p className="text-sm text-slate-500">No won revenue recorded yet.</p>
-          ) : (
-            <div>
-              <div className="flex h-40 items-end gap-3">
-                {revenue.map((entry) => (
-                  <div
-                    key={entry.month}
-                    className="flex-1 rounded-t bg-emerald-500 transition-colors hover:bg-emerald-400"
-                    style={{ height: `${Math.max(2, Math.round((entry.total / maxRevenue) * 100))}%` }}
-                    title={formatCurrency(entry.total, 'USD')}
-                  />
-                ))}
-              </div>
-              <div className="mt-2 flex gap-3">
-                {revenue.map((entry) => (
-                  <div key={entry.month} className="min-w-0 flex-1 text-center">
-                    <p className="truncate text-xs font-medium text-slate-700">{formatCurrency(entry.total, 'USD')}</p>
-                    <p className="text-xs text-slate-400">{formatMonthLabel(entry.month)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Deals by stage</h2>
-          <div className="space-y-3">
-            {DEAL_STAGES.map((stage) => {
-              const count = stats.deals.byStage[stage] ?? 0
-              return (
-                <div key={stage}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700">{titleCase(stage)}</span>
-                    <span className="text-slate-500">{count}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle>Revenue (last 6 months)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenue.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No won revenue recorded yet.</p>
+            ) : (
+              <div>
+                <div className="flex h-40 items-end gap-3">
+                  {revenue.map((entry) => (
                     <div
-                      className="h-full rounded-full bg-indigo-600"
-                      style={{ width: `${Math.round((count / maxStageCount) * 100)}%` }}
+                      key={entry.month}
+                      className="flex-1 rounded-t bg-emerald-500 transition-colors hover:bg-emerald-400"
+                      style={{ height: `${Math.max(2, Math.round((entry.total / maxRevenue) * 100))}%` }}
+                      title={formatCurrency(entry.total, 'USD')}
                     />
-                  </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-        <div className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Top companies by pipeline</h2>
+                <div className="mt-2 flex gap-3">
+                  {revenue.map((entry) => (
+                    <div key={entry.month} className="min-w-0 flex-1 text-center">
+                      <p className="truncate text-xs font-medium text-foreground/80">{formatCurrency(entry.total, 'USD')}</p>
+                      <p className="text-xs text-muted-foreground/70">{formatMonthLabel(entry.month)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle>Deals by stage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {DEAL_STAGES.map((stage) => {
+                const count = stats.deals.byStage[stage] ?? 0
+                return (
+                  <div key={stage}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground/80">{titleCase(stage)}</span>
+                      <span className="text-muted-foreground">{count}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${Math.round((count / maxStageCount) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle>Top companies by pipeline</CardTitle>
+          </CardHeader>
           {stats.topCompanies.length === 0 ? (
-            <p className="text-sm text-slate-500">No pipeline data yet.</p>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">No pipeline data yet.</p>
+            </CardContent>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {stats.topCompanies.map((company) => (
-                <li key={company.companyId ?? company.name} className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0">
-                    {company.companyId ? (
-                      <Link
-                        href={`/companies/${company.companyId}`}
-                        className="truncate text-sm font-medium text-slate-900 hover:text-indigo-600"
-                      >
-                        {company.name}
-                      </Link>
-                    ) : (
-                      <p className="truncate text-sm font-medium text-slate-900">{company.name}</p>
-                    )}
-                    <p className="text-xs text-slate-500">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Company</TableHead>
+                  <TableHead>Deals</TableHead>
+                  <TableHead className="text-right">Pipeline</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.topCompanies.map((company) => (
+                  <TableRow key={company.companyId ?? company.name}>
+                    <TableCell>
+                      {company.companyId ? (
+                        <Link
+                          href={`/companies/${company.companyId}`}
+                          className="font-medium text-foreground hover:text-primary"
+                        >
+                          {company.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">{company.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {company.dealCount} deal{company.dealCount === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold text-indigo-600">
-                    {formatCurrency(company.pipelineValue, 'USD')}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                      {formatCurrency(company.pipelineValue, 'USD')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-        <div className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Recent deals</h2>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle>Recent deals</CardTitle>
+          </CardHeader>
           {(recentDeals?.items ?? []).length === 0 ? (
-            <p className="text-sm text-slate-500">No deals yet. Create your first deal on the Deals board.</p>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">No deals yet. Create your first deal on the Deals board.</p>
+            </CardContent>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {(recentDeals?.items ?? []).map((deal) => (
-                <li key={deal.id} className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">{deal.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {titleCase(deal.stage)} · created {formatDate(deal.createdAt)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold text-indigo-600">
-                    {formatCurrency(deal.value, deal.currency)}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Deal</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(recentDeals?.items ?? []).map((deal) => (
+                  <TableRow key={deal.id}>
+                    <TableCell>
+                      <p className="font-medium text-foreground">{deal.title}</p>
+                      <p className="text-xs text-muted-foreground">created {formatDate(deal.createdAt)}</p>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{titleCase(deal.stage)}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                      {formatCurrency(deal.value, deal.currency)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )

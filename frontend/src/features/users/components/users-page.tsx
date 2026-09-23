@@ -1,9 +1,27 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useUsers } from '../hooks/use-users'
 import { useUpdateUserRole } from '../hooks/use-user-mutations'
 import { PageHeader } from '../../../shared/components/page-header'
 import { SkeletonList } from '../../../shared/components/skeleton'
+import { Button } from '../../../shared/components/ui/button'
+import { Card } from '../../../shared/components/ui/card'
+import { Input } from '../../../shared/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../shared/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/components/ui/table'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { formatDate } from '../../../shared/lib/format'
 import type { Role } from '../../../shared/types'
@@ -33,11 +51,11 @@ export function UsersPage() {
       <PageHeader title="Users" description="Manage team members and their roles" />
       <div className="mb-4">
         <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Input
             type="search"
             placeholder="Search users…"
-            className="input pl-9"
+            className="pl-9"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value)
@@ -50,70 +68,78 @@ export function UsersPage() {
       {isLoading ? (
         <SkeletonList count={4} />
       ) : !data || data.items.length === 0 ? (
-        <div className="card p-12 text-center text-sm text-slate-500">No users found.</div>
+        <Card className="p-12 text-center text-sm text-muted-foreground">No users found.</Card>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Email</th>
-                <th className="th">Name</th>
-                <th className="th">Role</th>
-                <th className="th">Joined</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.items.map((user) => (
-                <tr key={user.id} className="transition-colors hover:bg-slate-50">
-                  <td className="td font-medium text-slate-900">{user.email}</td>
-                  <td className="td">{user.displayName ?? '—'}</td>
-                  <td className="td">
-                    <select
-                      className="select w-36"
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium text-foreground">{user.email}</TableCell>
+                  <TableCell className="text-muted-foreground">{user.displayName ?? '—'}</TableCell>
+                  <TableCell>
+                    <Select
                       value={user.role}
                       disabled={user.id === profile?.id || roleMutation.isPending}
-                      onChange={(event) =>
-                        roleMutation.mutate({ id: user.id, role: event.target.value as Role })
+                      onValueChange={(value) =>
+                        roleMutation.mutate({ id: user.id, role: value as Role })
                       }
                     >
-                      <option value="MEMBER">Member</option>
-                      <option value="ADMIN">Admin</option>
-                    </select>
-                  </td>
-                  <td className="td">{formatDate(user.createdAt)}</td>
-                </tr>
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MEMBER">Member</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-            <p className="text-sm text-slate-500">
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <p className="text-sm text-muted-foreground">
               {total} user{total === 1 ? '' : 's'}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canPrev}
                 onClick={() => setPage((current) => current - 1)}
               >
+                <ChevronLeft className="h-4 w-4" />
                 Previous
-              </button>
-              <span className="text-sm text-slate-500">
+              </Button>
+              <span className="text-sm text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
                 type="button"
-                className="btn-secondary"
+                variant="outline"
+                size="sm"
                 disabled={!canNext}
                 onClick={() => setPage((current) => current + 1)}
               >
                 Next
-              </button>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
-      <p className="mt-3 text-sm text-slate-400">Role changes apply after the user&apos;s next login.</p>
+      <p className="mt-3 text-sm text-muted-foreground/70">Role changes apply after the user&apos;s next login.</p>
     </div>
   )
 }
