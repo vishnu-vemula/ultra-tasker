@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
-import { auth } from '../../../firebase'
+import { getFirebaseAuth } from '../../../shared/lib/firebase'
 import { signupSchema, type SignupFormValues } from '../model/schema'
 import { postSession } from '../api/auth-api'
 
@@ -22,7 +22,7 @@ export function SignupForm() {
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true)
     try {
-      const credential = await createUserWithEmailAndPassword(auth, values.email, values.password)
+      const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), values.email, values.password)
       await updateProfile(credential.user, { displayName: values.name })
       await postSession(values.name)
     } catch (error) {

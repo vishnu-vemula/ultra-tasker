@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
-import { auth } from '../../../firebase'
+import { getFirebaseAuth } from '../../../shared/lib/firebase'
 import { loginSchema, type LoginFormValues } from '../model/schema'
 
 export function LoginForm() {
@@ -21,7 +21,7 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true)
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password)
+      await signInWithEmailAndPassword(getFirebaseAuth(), values.email, values.password)
     } catch (error) {
       const message = error instanceof FirebaseError ? error.message : 'Failed to sign in'
       toast.error(message)

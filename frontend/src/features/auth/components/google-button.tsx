@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { signInWithPopup } from 'firebase/auth'
 import { toast } from 'react-toastify'
 import { FirebaseError } from 'firebase/app'
-import { auth, googleProvider } from '../../../firebase'
+import { getFirebaseAuth, googleProvider } from '../../../shared/lib/firebase'
 
 export function GoogleButton() {
   const [submitting, setSubmitting] = useState(false)
@@ -10,7 +10,7 @@ export function GoogleButton() {
   const handleSignIn = async () => {
     setSubmitting(true)
     try {
-      await signInWithPopup(auth, googleProvider)
+      await signInWithPopup(getFirebaseAuth(), googleProvider)
     } catch (error) {
       const message = error instanceof FirebaseError ? error.message : 'Google sign-in failed'
       toast.error(message)

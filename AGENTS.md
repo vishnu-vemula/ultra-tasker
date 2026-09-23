@@ -6,7 +6,7 @@ Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace,
 
 **Ultra Tasker** — a production-grade CRM (contacts, companies, deals pipeline with quote builder, tasks, activities, tags, notifications, audit trail, dashboard, global search, user management) with Firebase auth, Prisma + PostgreSQL, and a fully TypeScript feature-based codebase.
 
-- Stack: Express + TS backend, React + Vite + TS frontend, Firebase Authentication, Prisma ORM, React Query, Tailwind.
+- Stack: Express + TS backend, Next.js 14 (App Router) + React + TS frontend, Firebase Authentication, Prisma ORM, React Query, Tailwind.
 - The old MERN task-manager code is gone; everything follows the target architecture described in `ARCHITECTURE.md`. There is no migration in flight — build new work on the existing patterns.
 
 ## Repository layout
@@ -27,9 +27,12 @@ Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace,
 │       ├── container.ts # DI composition root
 │       └── app.ts / main.ts
 └── frontend/
+    ├── app/             # Next.js App Router — layouts + thin page.tsx route wrappers
+    │   ├── (auth)/      # /login, /signup
+    │   └── (crm)/       # auth-guarded shell wrapping all CRM routes
     └── src/
         ├── features/    # one folder per feature (api/ hooks/ components/ model/)
-        └── shared/      # api-client, UI primitives, format helpers, cross-feature types
+        └── shared/      # api-client, firebase, UI primitives, format helpers, cross-feature types
 ```
 
 ## Commands
@@ -41,7 +44,7 @@ Operating manual for AI coding agents (opencode, Claude Code, Copilot Workspace,
 | Seed demo data | `backend/` | `npm run db:seed` (reads `SEED_OWNER_UID`) |
 | Backend checks | `backend/` | `npm run typecheck`, `npm run lint`, `npm test` (unit), `npm run build` |
 | Backend e2e | `backend/` | `npm run test:e2e` — needs a scratch Postgres on :5434 (see `tests/setup-env.ts`) plus `npx prisma migrate dev` against it |
-| Run frontend | `frontend/` | `npm run dev` (port 5173; needs `.env` from `.env.example`) |
+| Run frontend | `frontend/` | `npm run dev` (port 3000; needs `.env` from `.env.example`) |
 | Frontend checks | `frontend/` | `npm run typecheck`, `npm run lint`, `npm run build` |
 
 Running the app requires PostgreSQL and Firebase credentials (see README "Getting Started"). Typecheck/lint/test run without them.

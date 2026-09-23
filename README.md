@@ -48,7 +48,7 @@ A production-grade CRM built on a typed, feature-based stack: **contacts, compan
 | Data | PostgreSQL + Prisma ORM behind repository classes |
 | Auth | Firebase Admin (token verification, custom claims) |
 | DI | Constructor injection wired in a single composition root (`backend/src/container.ts`) |
-| Frontend | React 18 + Vite + TypeScript, Tailwind CSS |
+| Frontend | Next.js 14 (App Router) + React 18 + TypeScript, Tailwind CSS |
 | Client data | `features/*/api` (pure fetch functions) → `features/*/hooks` (React Query) → `components` (render only) |
 | DnD | @hello-pangea/dnd (maintained react-beautiful-dnd fork) |
 
@@ -113,8 +113,10 @@ npm run db:seed
 cd frontend
 cp .env.example .env    # paste your Firebase web-app config
 npm install
-npm run dev             # app on http://localhost:5173
+npm run dev             # app on http://localhost:3000
 ```
+
+> The frontend runs on port 3000 — make sure `CORS_ORIGIN` in `backend/.env` includes `http://localhost:3000`.
 
 ### 4. First login
 
@@ -133,7 +135,7 @@ Sign up in the app with an email listed in `BOOTSTRAP_ADMIN_EMAILS` — you'll g
 | `npx prisma migrate dev` | `backend` | Apply schema changes |
 | `npm run db:seed` | `backend` | Demo data |
 | `npm run db:studio` | `backend` | Prisma Studio |
-| `npm run dev` / `build` / `lint` / `typecheck` | `frontend` | Vite app |
+| `npm run dev` / `build` / `start` / `lint` / `typecheck` | `frontend` | Next.js app |
 
 ## API Overview
 
@@ -178,9 +180,12 @@ Base URL: `/api/v1` · Auth: `Authorization: Bearer <Firebase ID token>` on ever
 │       ├── container.ts   # DI composition root
 │       └── app.ts / main.ts
 └── frontend/
+    ├── app/                 # App Router: layouts, route groups, thin page.tsx views
+    │   ├── (auth)/          # /login, /signup (public)
+    │   └── (crm)/           # auth-guarded shell: /, /contacts, /deals, /tasks, /settings/*
     └── src/
-        ├── features/<name>/   # api/ (pure fetch) → hooks/ (React Query) → components/
-        └── shared/            # api-client, UI primitives, audit timeline, types
+        ├── features/<name>/ # api/ (pure fetch, .ts) → hooks/ (React Query, .ts) → components/ (.tsx)
+        └── shared/          # api-client, firebase, UI primitives, audit timeline, types
 ```
 
 ## Roadmap

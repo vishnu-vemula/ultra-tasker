@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { Pencil, Plus } from 'lucide-react'
 import { useContactDetail } from '../hooks/use-contacts'
 import { useSetContactTags } from '../hooks/use-contact-mutations'
@@ -15,8 +16,8 @@ import { ActivityDialog } from '../../activities/components/activity-dialog'
 import { TagSelect } from '../../tags/components/tag-select'
 
 export function ContactDetailPage() {
-  const { contactId } = useParams()
-  const navigate = useNavigate()
+  const { contactId } = useParams<{ contactId: string }>()
+  const router = useRouter()
   const { data: contact, isLoading } = useContactDetail(contactId ?? '')
   const setTagsMutation = useSetContactTags()
   const [editOpen, setEditOpen] = useState(false)
@@ -75,7 +76,7 @@ export function ContactDetailPage() {
               label: 'Company',
               value:
                 contact.company && contact.companyId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" to={`/companies/${contact.companyId}`}>
+                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/companies/${contact.companyId}`}>
                     {contact.company.name}
                   </Link>
                 ) : (
@@ -159,7 +160,7 @@ export function ContactDetailPage() {
                 <tr
                   key={deal.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => navigate(`/deals/${deal.id}`)}
+                  onClick={() => router.push(`/deals/${deal.id}`)}
                 >
                   <td className="td font-medium text-slate-900">{deal.title}</td>
                   <td className="td">

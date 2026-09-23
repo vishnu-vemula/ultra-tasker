@@ -1,4 +1,4 @@
-import { getAuth } from 'firebase/auth'
+import { getFirebaseAuth } from './firebase'
 
 export class ApiError extends Error {
   status: number
@@ -27,8 +27,8 @@ interface ApiSuccessBody<T> {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL
-  const token = await getAuth().currentUser?.getIdToken()
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+  const token = await getFirebaseAuth().currentUser?.getIdToken()
   const headers = new Headers(init?.headers)
   headers.set('Accept', 'application/json')
   if (init?.body) headers.set('Content-Type', 'application/json')
@@ -61,8 +61,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T |
 }
 
 export async function apiDownload(path: string, filename: string): Promise<void> {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL
-  const token = await getAuth().currentUser?.getIdToken()
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+  const token = await getFirebaseAuth().currentUser?.getIdToken()
   const headers = new Headers()
   headers.set('Accept', 'text/csv')
   if (token) headers.set('Authorization', `Bearer ${token}`)

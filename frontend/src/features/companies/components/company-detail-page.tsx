@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams, useRouter } from 'next/navigation'
 import { Pencil, Plus } from 'lucide-react'
 import { useCompanyDetail } from '../hooks/use-companies'
 import { CompanyDialog } from './company-dialog'
@@ -14,8 +14,8 @@ import { ActivityTimeline } from '../../activities/components/activity-timeline'
 import { ActivityDialog } from '../../activities/components/activity-dialog'
 
 export function CompanyDetailPage() {
-  const { companyId } = useParams()
-  const navigate = useNavigate()
+  const { companyId } = useParams<{ companyId: string }>()
+  const router = useRouter()
   const { data: company, isLoading } = useCompanyDetail(companyId ?? '')
   const { data: activityPage } = useActivities({ companyId: companyId ?? '', pageSize: 10 })
   const [editOpen, setEditOpen] = useState(false)
@@ -90,7 +90,7 @@ export function CompanyDetailPage() {
                 <tr
                   key={contact.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => navigate(`/contacts/${contact.id}`)}
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
                   <td className="td font-medium text-slate-900">{contact.name}</td>
                   <td className="td">{contact.email ?? '—'}</td>
@@ -124,7 +124,7 @@ export function CompanyDetailPage() {
                 <tr
                   key={deal.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => navigate(`/deals/${deal.id}`)}
+                  onClick={() => router.push(`/deals/${deal.id}`)}
                 >
                   <td className="td font-medium text-slate-900">{deal.title}</td>
                   <td className="td">

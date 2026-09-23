@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { AlarmClock, Bell, CheckCheck, Trophy } from 'lucide-react'
 import clsx from 'clsx'
 import { timeAgo } from '../../../shared/lib/format'
@@ -82,7 +82,7 @@ export function NotificationsBell() {
               </ul>
             )}
             <Link
-              to="/notifications"
+              href="/notifications"
               className="block border-t border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-indigo-600 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { BarChart3, ClipboardList, Trophy, Users, Wallet } from 'lucide-react'
 import { useStats } from '../hooks/use-stats'
 import { useDeals } from '../../deals/hooks/use-deals'
@@ -132,7 +132,7 @@ export function DashboardPage() {
                   <div className="min-w-0">
                     {company.companyId ? (
                       <Link
-                        to={`/companies/${company.companyId}`}
+                        href={`/companies/${company.companyId}`}
                         className="truncate text-sm font-medium text-slate-900 hover:text-indigo-600"
                       >
                         {company.name}

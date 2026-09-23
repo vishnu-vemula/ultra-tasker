@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { Building2, Plus, Search } from 'lucide-react'
 import { useCompanies } from '../hooks/use-companies'
 import { useDeleteCompany } from '../hooks/use-company-mutations'
@@ -12,7 +12,7 @@ import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { formatDate } from '../../../shared/lib/format'
 
 export function CompaniesPage() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -93,7 +93,7 @@ export function CompaniesPage() {
                 <tr
                   key={company.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => navigate(`/companies/${company.id}`)}
+                  onClick={() => router.push(`/companies/${company.id}`)}
                 >
                   <td className="td font-medium text-slate-900">{company.name}</td>
                   <td className="td">{company.domain ?? '—'}</td>

@@ -7,7 +7,7 @@ Single source of truth for architecture decisions. Every PR is reviewed against 
 ## 1. System overview
 
 ```
-Browser (React + Vite TS SPA)
+Browser (Next.js App Router — client-rendered CRM UI)
   │  Firebase JS SDK ── email/password + Google sign-in
   │  Authorization: Bearer <Firebase ID token>
   ▼
@@ -116,13 +116,22 @@ AuditLog (action × entity per owner: CREATE/UPDATE/DELETE/STAGE_CHANGE)
 ### 3.1 Folder shape
 
 ```
+app/                        # Next.js App Router — views only (.tsx)
+├── layout.tsx              # root layout: html/body + Providers (React Query, AuthProvider, toasts)
+├── providers.tsx           # 'use client' composition of client providers
+├── (auth)/login|signup/    # public routes
+└── (crm)/                  # auth-guarded route group (layout checks Firebase user)
+    ├── page.tsx            # /
+    ├── contacts/[contactId]/page.tsx …  # thin 'use client' wrappers importing feature components
 src/features/<name>/
-├── api/<name>-api.ts     # pure async functions, apiFetch, ZERO React imports
-├── hooks/                # React Query: query keys, optimistic updates, toasts
-├── components/           # presentational, consume hooks only
-└── model/schema.ts       # form Zod schemas
-src/shared/               # api-client, types.ts, format helpers, UI primitives
+├── api/<name>-api.ts     # pure async functions, apiFetch, ZERO React imports (.ts)
+├── hooks/                # React Query: query keys, optimistic updates, toasts (.ts)
+├── components/           # presentational views, consume hooks only (.tsx)
+└── model/schema.ts       # form Zod schemas (.ts)
+src/shared/               # api-client, firebase, types.ts, format helpers, UI primitives (.tsx)
 ```
+
+Views are `.tsx` (app routes + components); operations are `.ts` (api, hooks, model, lib). Feature components are client components by import chain — every `app/**/page.tsx` is a thin `'use client'` wrapper.
 
 ### 3.2 Three-layer data rule (law 5)
 
@@ -132,7 +141,7 @@ src/shared/               # api-client, types.ts, format helpers, UI primitives
 
 ### 3.3 Auth on the client
 
-`firebase.ts` initializes the SDK from `VITE_FIREBASE_*` env. `AuthProvider` (features/auth) tracks the Firebase user, calls `POST /auth/session` once per login to sync the profile + role, and exposes `{ firebaseUser, profile, role, loading }`. `App.tsx` guards routes (`RequireAuth`, admin-only `/settings/users`).
+`shared/lib/firebase.ts` lazily initializes the SDK (client-only singleton `getFirebaseAuth()`) from `NEXT_PUBLIC_FIREBASE_*` env. `AuthProvider` (features/auth) tracks the Firebase user, calls `POST /auth/session` once per login to sync the profile + role, and exposes `{ firebaseUser, profile, role, loading }`. Route guards live in `app/`: the `(crm)` layout redirects unauthenticated users to `/login`, and `app/(crm)/settings/users/page.tsx` is ADMIN-only.
 
 ## 4. Environments
 
@@ -147,8 +156,8 @@ Declared and validated in `backend/src/config/env.ts`; mirrored in `.env.example
 | `BOOTSTRAP_ADMIN_EMAILS` | backend | emails promoted to ADMIN on login |
 | `SEED_OWNER_UID` | backend | seed data owner |
 | `RATE_LIMIT_MAX` | backend | requests / 15 min / IP |
-| `VITE_API_BASE_URL` | frontend | API base, default `http://localhost:4000/api/v1` |
-| `VITE_FIREBASE_*` | frontend | web-app config (public by design) |
+| `NEXT_PUBLIC_API_BASE_URL` | frontend | API base, default `http://localhost:4000/api/v1` |
+| `NEXT_PUBLIC_FIREBASE_*` | frontend | web-app config (public by design; frontend dev port 3000 — keep it in `CORS_ORIGIN`) |
 
 ## 5. Testing strategy
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { Download, Plus, Search, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useContacts } from '../hooks/use-contacts'
@@ -25,7 +25,7 @@ function initials(name: string): string {
 }
 
 export function ContactsPage() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<ContactStatus | ''>('')
   const [page, setPage] = useState(1)
@@ -139,7 +139,7 @@ export function ContactsPage() {
                 <tr
                   key={contact.id}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() => navigate(`/contacts/${contact.id}`)}
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
                   <td className="td">
                     <div className="flex items-center gap-3">

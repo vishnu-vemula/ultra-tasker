@@ -1,4 +1,6 @@
-import { Navigate, Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Zap } from 'lucide-react'
 import { useAuth } from '../use-auth'
 import { SignupForm } from './signup-form'
@@ -6,8 +8,11 @@ import { GoogleButton } from './google-button'
 
 export function SignupPage() {
   const { firebaseUser, loading } = useAuth()
+  const router = useRouter()
 
-  if (!loading && firebaseUser) return <Navigate to="/" replace />
+  useEffect(() => {
+    if (!loading && firebaseUser) router.replace('/')
+  }, [firebaseUser, loading, router])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
@@ -28,7 +33,7 @@ export function SignupPage() {
         <GoogleButton />
         <p className="mt-6 text-center text-sm text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
+          <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
             Sign in
           </Link>
         </p>

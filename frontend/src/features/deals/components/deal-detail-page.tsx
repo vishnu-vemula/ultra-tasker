@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { Pencil, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import { useDealDetail } from '../hooks/use-deals'
@@ -189,7 +190,7 @@ function AddItemRow({ dealId }: AddItemRowProps) {
 }
 
 export function DealDetailPage() {
-  const { dealId } = useParams()
+  const { dealId } = useParams<{ dealId: string }>()
   const { data: deal, isLoading } = useDealDetail(dealId ?? '')
   const stageMutation = useUpdateDeal()
   const setTagsMutation = useSetDealTags()
@@ -279,7 +280,7 @@ export function DealDetailPage() {
               label: 'Contact',
               value:
                 deal.contact && deal.contactId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" to={`/contacts/${deal.contactId}`}>
+                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/contacts/${deal.contactId}`}>
                     {deal.contact.name}
                   </Link>
                 ) : (
@@ -290,7 +291,7 @@ export function DealDetailPage() {
               label: 'Company',
               value:
                 deal.company && deal.companyId ? (
-                  <Link className="text-indigo-600 hover:text-indigo-700" to={`/companies/${deal.companyId}`}>
+                  <Link className="text-indigo-600 hover:text-indigo-700" href={`/companies/${deal.companyId}`}>
                     {deal.company.name}
                   </Link>
                 ) : (

@@ -1,4 +1,6 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import type { ReactNode } from 'react'
 import { Building2, KanbanSquare, LayoutDashboard, LogOut, Package, Tags, Users, UsersRound, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../features/auth/use-auth'
@@ -34,34 +36,36 @@ function initials(name: string | null, email: string): string {
     .join('')
 }
 
-export function AppShell() {
+export function AppShell({ children }: { children: ReactNode }) {
   const { profile, firebaseUser, signOut } = useAuth()
-  const navigate = useNavigate()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/login')
+    router.push('/login')
   }
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || profile?.role === 'ADMIN')
   const mainItems = visibleItems.filter((item) => item.section !== 'settings')
   const settingItems = visibleItems.filter((item) => item.section === 'settings')
 
+  const isActive = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
+
   const renderLink = ({ to, label, icon: Icon }: NavItem) => (
-    <NavLink
+    <Link
       key={to}
-      to={to}
-      end={to === '/'}
-      className={({ isActive }) =>
-        clsx(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-        )
-      }
+      href={to}
+      className={clsx(
+        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        isActive(to)
+          ? 'bg-indigo-50 text-indigo-700'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+      )}
     >
       <Icon className="h-4 w-4" />
       {label}
-    </NavLink>
+    </Link>
   )
 
   return (
@@ -112,9 +116,7 @@ export function AppShell() {
           </div>
         </header>
         <div className="flex-1 overflow-x-auto">
-          <div className="mx-auto max-w-7xl p-8">
-            <Outlet />
-          </div>
+          <div className="mx-auto max-w-7xl p-8">{children}</div>
         </div>
       </main>
     </div>

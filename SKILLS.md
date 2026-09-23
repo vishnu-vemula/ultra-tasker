@@ -16,7 +16,7 @@ Architecture laws referenced as **L1–L8** (see AGENTS.md). Conventions and fol
 2. Backend feature folder `backend/src/features/<name>/` with all six files (router, controller, service, repository + interface, schemas, spec) — copy the shape from `features/companies/` (simplest) and escalate complexity via `features/deals/` (positions, relations).
 3. Wire it: register in `container.ts` (repos → services → controllers → routers) and mount in `app.ts` under `/api/v1/<name>` (**L3**).
 4. Guard it: `router.use(auth.requireAuth)`; every repo query filters `ownerId` (**L7**).
-5. Frontend feature folder `frontend/src/features/<name>/` (api → hooks → components → model) plus the route in `App.tsx` and sidebar link in `shared/components/app-shell.tsx` (**L5**).
+5. Frontend feature folder `frontend/src/features/<name>/` (api → hooks → components → model) plus a route under `frontend/app/(crm)/` (thin `'use client'` `page.tsx` importing the feature component) and a sidebar link in `shared/components/app-shell.tsx` (**L5**).
 6. Add types to `frontend/src/shared/types.ts` if other features consume them.
 7. **Verify:** `npm run typecheck` + `npm run lint` in both workspaces, `npm test` in backend, service spec added.
 

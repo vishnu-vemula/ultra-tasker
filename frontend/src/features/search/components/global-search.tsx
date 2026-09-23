@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { Building2, KanbanSquare, Search, UsersRound } from 'lucide-react'
 import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value'
 import { formatCurrency, titleCase } from '../../../shared/lib/format'
@@ -10,7 +10,7 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const debouncedQuery = useDebouncedValue(query.trim(), 300)
   const { data, isFetching } = useSearch(open ? debouncedQuery : '')
@@ -42,7 +42,7 @@ export function GlobalSearch() {
   const goTo = (path: string) => {
     setQuery('')
     setOpen(false)
-    navigate(path)
+    router.push(path)
   }
 
   return (

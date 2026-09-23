@@ -12,9 +12,9 @@
   </style>
 
   <rect x="20" y="20" width="280" height="120" rx="10" class="box"/>
-  <text x="40" y="48" class="title">Browser — React SPA</text>
-  <text x="40" y="70" class="sub">features/*/api (fetch) → hooks (React Query)</text>
-  <text x="40" y="88" class="sub">→ components (render only)</text>
+  <text x="40" y="48" class="title">Browser — Next.js App Router</text>
+  <text x="40" y="70" class="sub">app/ routes (.tsx views) · features/*/api (fetch)</text>
+  <text x="40" y="88" class="sub">→ hooks (React Query) → components (render only)</text>
   <text x="40" y="106" class="sub">Firebase JS SDK sign-in</text>
 
   <rect x="620" y="20" width="280" height="120" rx="10" class="box"/>

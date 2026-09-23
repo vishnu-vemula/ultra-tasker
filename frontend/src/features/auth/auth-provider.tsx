@@ -4,7 +4,7 @@ import {
   signOut as firebaseSignOut,
   type User as FirebaseUser,
 } from 'firebase/auth'
-import { auth } from '../../firebase'
+import { getFirebaseAuth } from '../../shared/lib/firebase'
 import { postSession } from './api/auth-api'
 import { AuthContext, type AuthContextValue } from './auth-context'
 import type { User } from '../../shared/types'
@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (user) => {
       setFirebaseUser(user)
       if (user) {
         try {
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: profile?.role ?? null,
       loading,
       signOut: async () => {
-        await firebaseSignOut(auth)
+        await firebaseSignOut(getFirebaseAuth())
       },
     }),
     [firebaseUser, profile, loading],
